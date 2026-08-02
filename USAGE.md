@@ -102,6 +102,31 @@ Surfaces every rule RNC could not resolve automatically (ambiguous, needs human
 review, incomplete, discarded source). High-impact items **block** the build
 until answered or explicitly marked assumed.
 
+### 5b. The API contract
+
+```bash
+rnc api gen      # deterministic skeleton from the IR (rnc owns this)
+rnc api check    # external referee — exits 1 on any error
+```
+
+`openapi.yaml` is **the** contract: the frontend client, backend stubs, contract
+tests, mocks and docs all derive from it. That is why the skeleton is
+deterministic and owned by `rnc` — an LLM does not emit the same file twice, so
+if each session rewrote it the two sides would be built against different
+contracts and `rnc trace` would lose its baseline.
+
+The split:
+
+| Part | Who |
+|---|---|
+| entity schemas, error schema, CRUD paths, security | **rnc** (mechanical, reproducible) |
+| semantic operations, custom shapes, real `examples` | **the agent**, inside the `x-rnc-agent-fill` points |
+| validation (`api check`) | **rnc** — the author is never the judge |
+
+`api check` catches broken `$ref`s, duplicate `operationId`s, money typed as a
+float, orphan schemas, missing fail-closed responses, and schemas that match no
+RNC entity.
+
 ### 6. Choose the target architecture
 
 The spec is stack-neutral; this binds it to a concrete stack.

@@ -107,6 +107,8 @@ Prefira estes comandos a inventar estrutura/config na mão:
 | \`rnc analyze --workspace <id>\` | início | queries ad hoc ao RNC |
 | \`rnc spec\` | após analyze | inventar estrutura de docs |
 | \`rnc clarify\` | antes de codar | assumir semântica no escuro |
+| \`rnc api gen\` | após spec | escrever openapi.yaml do zero |
+| \`rnc api check\` | após enriquecer o contrato | achar que o contrato está válido |
 | \`rnc stack --front .. --back .. --db ..\` | escolher alvo | montar config à mão |
 | \`rnc runtime up\` | subir ambiente | escrever docker-compose de cabeça |
 | \`rnc trace --check\` | após cada milestone | achar que não driftou |
@@ -121,6 +123,10 @@ Dois acessos ao RNC, complementares: o \`rnc\` (bulk/determinístico, lê \`.rnc
 
 - \`docs/functional/\` é stack-neutro. Não referencie stack aqui.
 - \`docs/api/openapi.yaml\` é o contrato único. Front, back, testes e docs derivam dele.
+  O **esqueleto** (schemas de entidade, erros, CRUD) pertence ao \`rnc\` — não reescreva o arquivo
+  inteiro, senão os dois lados passam a ser construídos contra contratos diferentes. Enriqueça
+  **dentro** dele: operações semânticas, shapes custom e \`examples\` com valores reais, nos pontos
+  marcados \`x-rnc-agent-fill\`. Depois rode \`rnc api check\` — o juiz é externo.
 - Toda regra de domínio cita a \`BR-NNN\` de origem. Incerteza vira \`[PRESUMIDO]\` + item em traceability.
 
 ## Guardrails (lições embutidas — não redescobrir)

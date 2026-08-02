@@ -13,8 +13,9 @@ import { implementCmd } from './commands/implement.js';
 import { traceCmd } from './commands/trace.js';
 import { verifyCmd } from './commands/verify.js';
 import { addCmd } from './commands/add.js';
+import { apiCmd } from './commands/api.js';
 
-const VERSION = '0.4.1';
+const VERSION = '0.5.0';
 
 /** Skalena plug-bot — cyan eyes + base, bold outline. */
 const BANNER = [
@@ -47,6 +48,7 @@ ${pc.bold('Fluxo SDD')} (ordem fixa):
   ${pc.cyan('rnc analyze')} --workspace <id> puxa análise do legado (RNC MCP → IR)
   ${pc.cyan('rnc spec')}                     gera docs/functional/ (stack-neutras)
   ${pc.cyan('rnc clarify')}                  gate: pontos que o RNC não resolveu sozinho
+  ${pc.cyan('rnc api')} gen|check            contrato OpenAPI: esqueleto determinístico · juiz
   ${pc.cyan('rnc stack')}                    escolhe arquitetura alvo (front/back/db)
   ${pc.cyan('rnc runtime')} up               golden→sem docker · resto→docker-compose
   ${pc.cyan('rnc implement')} [M<n>]         dispara Claude Code headless p/ o milestone
@@ -82,6 +84,8 @@ async function main(): Promise<void> {
       return runtimeCmd(rest);
     case 'implement':
       return implementCmd(rest);
+    case 'api':
+      return apiCmd(rest);
     case 'trace':
       return traceCmd(rest);
     case 'verify':
