@@ -94,8 +94,28 @@ Fonte da verdade: workspace RNC \`${workspace}\` via MCP server \`rnc\`.
 
 ## Método (fixo — SDD)
 
-Trabalhe sempre na ordem: analyze → spec → clarify → stack → roadmap → implement → verify → trace.
+Trabalhe sempre na ordem: analyze → spec → clarify → stack → runtime → verify → trace.
 Nunca gere código antes de \`docs/functional/\` existir e o gate \`clarify\` estar resolvido.
+
+## Ferramentas \`rnc\` (rode via shell — determinísticas, não improvise)
+
+Prefira estes comandos a inventar estrutura/config na mão:
+
+| Rode | Quando | Em vez de |
+|---|---|---|
+| \`rnc doctor\` | início | adivinhar estado do ambiente/auth |
+| \`rnc analyze --workspace <id>\` | início | queries ad hoc ao RNC |
+| \`rnc spec\` | após analyze | inventar estrutura de docs |
+| \`rnc clarify\` | antes de codar | assumir semântica no escuro |
+| \`rnc stack --front .. --back .. --db ..\` | escolher alvo | montar config à mão |
+| \`rnc runtime up\` | subir ambiente | escrever docker-compose de cabeça |
+| \`rnc trace --check\` | após cada milestone | achar que não driftou |
+
+Dois acessos ao RNC, complementares: o \`rnc\` (bulk/determinístico, lê \`.rnc/analysis.json\` + docs) e as tools do MCP server \`rnc\` (zoom vivo num módulo: \`getModuleRules\`, \`getModuleDataModel\`, \`getUirModule\`). Use os dois.
+
+## Guardrail — NÃO chame \`rnc implement\`
+
+\`rnc implement\` dispara OUTRO agente headless — chamá-lo de dentro desta sessão causa recursão. Aqui, use só \`analyze/spec/clarify/stack/runtime/trace/doctor\`. \`implement\` é o modo de fora-pra-dentro (orquestra você); os outros são de dentro-pra-fora (você os chama).
 
 ## Fonte da verdade
 

@@ -56,6 +56,19 @@ golden     next + next-api + sqlite   (the only no-docker combo)
 Testability is a contract, not an afterthought: integration tests run against
 the **real database** via Testcontainers (PGlite for the monorepo).
 
+## rnc and Claude Code — both directions
+
+The same binary works two ways:
+
+- **rnc → Claude Code** (outside-in, batch/CI): `rnc implement` derives a
+  milestone from the IR + stack, enforces the clarify gate, and spawns Claude
+  Code headless inside the scaffold it wired.
+- **Claude Code → rnc** (inside-out, interactive): during a session Claude Code
+  runs `rnc` over Bash as deterministic tools + a self-referee — `rnc analyze`,
+  `rnc spec`, `rnc stack`, `rnc runtime`, and `rnc trace --check` on its own
+  output. The generated `AGENTS.md` wires when to call each, and forbids calling
+  `rnc implement` from inside a session (it would recurse into another agent).
+
 ## Multi-tool by design
 
 `AGENTS.md` is the shared spine (read by Codex, OpenCode, IBM Bob); `CLAUDE.md`

@@ -171,6 +171,33 @@ rnc doctor
 
 Checks Node, blueprints, RNC auth, project state and detected agent tools.
 
+## Two directions: `rnc` and Claude Code
+
+The same binary works both ways.
+
+**rnc → Claude Code** (outside-in, batch/CI): `rnc implement` derives the
+milestone and spawns Claude Code headless inside the scaffold it wired.
+
+**Claude Code → rnc** (inside-out, interactive): during a coding session Claude
+Code runs `rnc` over Bash as **deterministic tools + a self-referee** — instead
+of improvising structure it calls the CLI, and it runs `rnc trace --check` on
+its own output to catch drift.
+
+```
+$ rnc doctor                      # environment + auth ok?
+$ rnc analyze --workspace SAFO    # deterministic IR
+$ rnc spec                        # canonical functional docs
+$ rnc clarify                     # gate — nothing blocking?
+  … reads docs, zooms modules via the RNC MCP tools, writes code citing INV/BR …
+$ rnc trace --check               # self-verify: code ↔ spec ↔ RNC
+$ rnc runtime up && docker compose up --wait
+```
+
+The generated `AGENTS.md` wires this: it lists which `rnc` command to run when,
+and forbids calling `rnc implement` from inside a session (that would recurse
+into another headless agent). Read-only commands (`analyze`, `spec`, `trace`,
+`doctor`) are safe to allowlist in Claude Code to cut permission prompts.
+
 ## Multi-tool agents
 
 `rnc init` also writes:

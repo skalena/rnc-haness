@@ -11,7 +11,7 @@ import { mcpCmd } from './commands/mcp.js';
 import { configCmd } from './commands/config.js';
 import { implementCmd } from './commands/implement.js';
 
-const VERSION = '0.2.0';
+const VERSION = '0.2.1';
 
 const HELP = `
 ${pc.bold('rnc')} — RNC Harness CLI  ${pc.dim(`v${VERSION}`)}
