@@ -15,7 +15,7 @@ import { verifyCmd } from './commands/verify.js';
 import { addCmd } from './commands/add.js';
 import { apiCmd } from './commands/api.js';
 
-const VERSION = '0.5.0';
+const VERSION = '0.5.1';
 
 /** Skalena plug-bot — cyan eyes + base, bold outline. */
 const BANNER = [
@@ -36,7 +36,8 @@ ${pc.bold('rnc')} — RNC Harness CLI  ${pc.dim(`v${VERSION}`)}
   o workflow é fixo, a stack alvo é composável.
 
 ${pc.bold('Auth')} (RNC MCP):
-  ${pc.cyan('rnc mcp login')}                pareia via navegador, salva token (0600, 90d)
+  ${pc.cyan('rnc mcp login')}                pareia via navegador; sem pairing, pede token (colagem oculta)
+  ${pc.cyan('rnc mcp login')} --token <t>    autentica direto com token do web app
   ${pc.cyan('rnc mcp whoami')}               identidade + workspaces visíveis
   ${pc.cyan('rnc mcp status')}               estado da credencial local
   ${pc.cyan('rnc mcp logout')}               esquece token localmente

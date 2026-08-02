@@ -59,6 +59,9 @@ export class AuthError extends Error {}
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** Thrown when the deployment does not expose the device-pairing endpoints. */
+export class PairingUnavailable extends Error {}
+
 /** §3.1 — start pairing, returns device + user code. */
 export async function startPairing(base: string, clientName: string): Promise<PairingStart> {
   const res = await fetch(`${base}/auth/cli/pair`, {
@@ -66,6 +69,9 @@ export async function startPairing(base: string, clientName: string): Promise<Pa
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ clientName }),
   });
+  // Not every deployment ships device pairing (it 404s on the hosted API today).
+  // Surface that as a distinct condition so `login` can offer the token path.
+  if (res.status === 404) throw new PairingUnavailable('device pairing não disponível neste deployment');
   if (!res.ok) throw new Error(`pair failed: HTTP ${res.status}`);
   return PairingStart.parse(await res.json());
 }

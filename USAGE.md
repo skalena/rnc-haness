@@ -45,9 +45,22 @@ login → analyze → spec → clarify → stack → runtime → (implement → 
 rnc mcp login
 ```
 
-Device pairing: the CLI prints a URL and a code, you approve in the browser
-(works for password and SSO/Keycloak accounts). The token is stored at
-`~/.rnc/credentials.json` (mode `0600`), valid 90 days.
+Two paths, picked automatically:
+
+- **Device pairing** — the CLI prints a URL and a code, you approve in the
+  browser (works for password and SSO/Keycloak accounts).
+- **Token** — if the deployment does not expose pairing (`/auth/cli/pair` →
+  404, which is the case on the hosted API today), `login` asks you to paste a
+  token generated in the web app. Input is masked, so it never lands on screen
+  or in shell history.
+
+```bash
+rnc mcp login --token <token>   # non-interactive (CI); also reads $RNC_TOKEN
+```
+
+The token is validated against the API before being stored — a bad token fails
+right there, not three commands later. Stored at `~/.rnc/credentials.json`
+(mode `0600`), keyed by base URL, with the expiry read from the token itself.
 
 ```bash
 rnc mcp whoami     # identity + workspaces you can see
