@@ -128,7 +128,28 @@ rnc stack
 Invalid combos (e.g. a backend with no adapter for a database) are rejected with
 a clear message. The choice is saved to `.rnc/stack.json`.
 
-### 7. Generate the runtime
+### 7. Implement, milestone by milestone
+
+`rnc` is the deterministic spine; Claude Code is the worker. `implement` derives
+the milestone from the IR + stack, enforces the clarify gate, and hands Claude
+Code (headless) a prompt with the goal, docs to read, Definition-of-Done and the
+RNC MCP tools to zoom with.
+
+```bash
+rnc implement --list        # M0..Mn ladder + progress
+rnc implement               # next pending milestone
+rnc implement M1            # a specific one
+rnc implement M1 --dry-run  # write the prompt to .rnc/implement-M1.md, don't spawn
+rnc implement M1 --force    # proceed even with unresolved high-impact unknowns
+rnc implement M1 --model opus
+```
+
+High-impact `clarify` unknowns **block** `implement` until resolved (or `--force`,
+which marks them `[PRESUMIDO]`). Requires the `claude` CLI on PATH; without it,
+the prompt is saved for any AGENTS.md-aware agent. Progress is tracked in
+`.rnc/progress.json`.
+
+### 8. Generate the runtime
 
 ```bash
 rnc runtime up

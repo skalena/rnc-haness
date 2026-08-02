@@ -20,3 +20,22 @@ export function loadStack(cwd = process.cwd()): Stack | null {
   if (!existsSync(p)) return null;
   return Stack.parse(JSON.parse(readFileSync(p, 'utf8')));
 }
+
+/** Which milestones have been marked done. */
+export function loadProgress(cwd = process.cwd()): string[] {
+  const p = join(rncDir(cwd), 'progress.json');
+  if (!existsSync(p)) return [];
+  try {
+    const d = JSON.parse(readFileSync(p, 'utf8')) as { done?: string[] };
+    return d.done ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export function markDone(id: string, cwd = process.cwd()): void {
+  const dir = ensureRncDir(cwd);
+  const done = new Set(loadProgress(cwd));
+  done.add(id);
+  writeFileSync(join(dir, 'progress.json'), JSON.stringify({ done: [...done] }, null, 2) + '\n');
+}

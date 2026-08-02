@@ -9,8 +9,9 @@ import { runtimeCmd } from './commands/runtime.js';
 import { doctorCmd } from './commands/doctor.js';
 import { mcpCmd } from './commands/mcp.js';
 import { configCmd } from './commands/config.js';
+import { implementCmd } from './commands/implement.js';
 
-const VERSION = '0.1.1';
+const VERSION = '0.2.0';
 
 const HELP = `
 ${pc.bold('rnc')} — RNC Harness CLI  ${pc.dim(`v${VERSION}`)}
@@ -32,7 +33,10 @@ ${pc.bold('Fluxo SDD')} (ordem fixa):
   ${pc.cyan('rnc clarify')}                  gate: pontos que o RNC não resolveu sozinho
   ${pc.cyan('rnc stack')}                    escolhe arquitetura alvo (front/back/db)
   ${pc.cyan('rnc runtime')} up               golden→sem docker · resto→docker-compose
+  ${pc.cyan('rnc implement')} [M<n>]         dispara Claude Code headless p/ o milestone
   ${pc.cyan('rnc doctor')}                   diagnóstico
+
+  ${pc.cyan('rnc implement')} --list · --dry-run · --force · --model <m>
 
 ${pc.bold('rnc stack')} não-interativo:
   rnc stack --golden
@@ -56,6 +60,8 @@ async function main(): Promise<void> {
       return stackCmd(rest);
     case 'runtime':
       return runtimeCmd(rest);
+    case 'implement':
+      return implementCmd(rest);
     case 'mcp':
       return mcpCmd(rest);
     case 'config':
