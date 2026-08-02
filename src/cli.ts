@@ -14,9 +14,21 @@ import { traceCmd } from './commands/trace.js';
 import { verifyCmd } from './commands/verify.js';
 import { addCmd } from './commands/add.js';
 
-const VERSION = '0.4.0';
+const VERSION = '0.4.1';
+
+/** Skalena plug-bot — cyan eyes + base, bold outline. */
+const BANNER = [
+  pc.bold('    ╭────────────╮'),
+  pc.bold('    │  ') + pc.cyan('▟▙') + pc.bold('    ') + pc.cyan('▟▙') + pc.bold('   │'),
+  pc.bold('    │  ') + pc.cyan('▜▛') + pc.bold('    ') + pc.cyan('▜▛') + pc.bold('   │'),
+  pc.bold('    ╰────────────╯'),
+  '   ' + pc.cyan('▐██████████████▌'),
+  pc.bold('      ██      ██') + '   ' + pc.bold('SKALENA'),
+].join('\n');
 
 const HELP = `
+${BANNER}
+
 ${pc.bold('rnc')} — RNC Harness CLI  ${pc.dim(`v${VERSION}`)}
 
   Modernização spec-driven (SDD) de legado. A análise vem do RNC via MCP;
