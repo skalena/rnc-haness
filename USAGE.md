@@ -149,6 +149,20 @@ which marks them `[PRESUMIDO]`). Requires the `claude` CLI on PATH; without it,
 the prompt is saved for any AGENTS.md-aware agent. Progress is tracked in
 `.rnc/progress.json`.
 
+### 7b. Verify & trace
+
+```bash
+rnc verify          # runs the project's quality gates + trace + echoes the milestone DoD
+rnc trace           # reports drift: code ↔ spec ↔ RNC
+rnc trace --check   # same, exits 1 on any error — wire into CI
+```
+
+`trace` is deterministic (no LLM): it flags a spec invariant citing a BR absent
+from the RNC IR, code referencing an `INV-NN` missing from the spec, leftover
+`[PRESUMIDO]` markers, and unresolved high-impact `clarify` unknowns. `verify`
+runs the generated project's `typecheck`/`lint`/`test`/`build` scripts (when
+present) then `trace`, and prints the current milestone's Definition of Done.
+
 ### 8. Generate the runtime
 
 ```bash
