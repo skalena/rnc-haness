@@ -10,7 +10,7 @@ import { doctorCmd } from './commands/doctor.js';
 import { mcpCmd } from './commands/mcp.js';
 import { configCmd } from './commands/config.js';
 
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 
 const HELP = `
 ${pc.bold('rnc')} — RNC Harness CLI  ${pc.dim(`v${VERSION}`)}
@@ -38,7 +38,7 @@ ${pc.bold('rnc stack')} não-interativo:
   rnc stack --golden
   rnc stack --front vue --back quarkus --db postgres
 
-Config:  ${pc.dim('RNC_BASE_URL')} (default http://localhost:8080) · ${pc.dim('RNC_CONFIG_HOME')} (default ~/.rnc)
+Config:  ${pc.dim('RNC_BASE_URL')} (default https://api.rnc.skalena.co) · ${pc.dim('RNC_CONFIG_HOME')} (default ~/.rnc)
 `;
 
 async function main(): Promise<void> {

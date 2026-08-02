@@ -24,13 +24,13 @@ Requires Node ≥ 20.12.
 
 | Setting | Env var | Default |
 |---|---|---|
-| RNC API base URL | `RNC_BASE_URL` | `http://localhost:8080` |
+| RNC API base URL | `RNC_BASE_URL` | `https://api.rnc.skalena.co` (hosted prod) |
 | Credential / config home | `RNC_CONFIG_HOME` | `~/.rnc` |
 
-For the hosted platform:
+Out of the box it targets the hosted platform. Override only for local/dev:
 
 ```bash
-export RNC_BASE_URL=https://api.rnc.skalena.co
+export RNC_BASE_URL=http://localhost:8080
 ```
 
 ## The workflow (fixed order)

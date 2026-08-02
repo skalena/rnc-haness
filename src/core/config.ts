@@ -8,9 +8,12 @@ import { mkdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
  * arrives in the pairing response, already correct per environment.
  */
 
-/** API base URL (not the web app). RNC-MCP-INTEGRATION.md §2/§9. */
+/**
+ * API base URL (not the web app). Defaults to the hosted prod API; override
+ * with RNC_BASE_URL or --base-url for local/dev (e.g. http://localhost:8080).
+ */
 export function baseUrl(override?: string): string {
-  return override ?? process.env.RNC_BASE_URL ?? 'http://localhost:8080';
+  return override ?? process.env.RNC_BASE_URL ?? 'https://api.rnc.skalena.co';
 }
 
 /** ~/.rnc unless overridden. */
