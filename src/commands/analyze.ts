@@ -10,8 +10,10 @@ import { whoami, resolveWorkspace, AuthError } from '../core/rnc.js';
 import { getWorkspace, listModules, getModule, type ModuleSummary, type ModuleDetail } from '../core/rncApi.js';
 import { log } from '../core/log.js';
 
-/** How many modules to deep-fetch for rules/entities/unknowns (by ruleCount). */
-const DEEP = 12;
+/** Parallel module fetches. Full extraction by default — losing a business
+ *  rule is the exact failure this harness exists to prevent, so sampling is
+ *  opt-in (--sample N), never the default. */
+const CONCURRENCY = 6;
 
 /**
  * Pull the legacy analysis from RNC and normalize it into the IR.
@@ -63,7 +65,7 @@ export async function analyzeCmd(argv: string[]): Promise<void> {
 
   let ir: Analysis;
   try {
-    ir = await extract(base, token, wsId);
+    ir = await extract(base, token, wsId, flags.sample ? Number(flags.sample) : undefined);
   } catch (e) {
     log.err(`extração falhou: ${(e as Error).message}`);
     process.exit(1);
@@ -74,7 +76,7 @@ export async function analyzeCmd(argv: string[]): Promise<void> {
 
   log.plain('');
   log.ok(`linguagem: ${ir.sourceLang}  ·  retenção: ${ir.sourceRetention}`);
-  log.ok(`${ir.units.length} unidades · ${ir.rules.length} regras (amostradas) · ${ir.entities.length} entidades`);
+  log.ok(`${ir.units.length} unidades · ${ir.rules.length} regras · ${ir.entities.length} entidades`);
   log.ok(`tech-debt: ${ir.techDebt.critical} crítico · ${ir.techDebt.high} alto · ${ir.techDebt.medium} médio · ${ir.techDebt.low} baixo`);
   log.plain('');
   log.info('ordem de build (blast-radius):');
@@ -87,19 +89,27 @@ export async function analyzeCmd(argv: string[]): Promise<void> {
   if (ir.unknowns.length) log.warn(`${ir.unknowns.length} pontos a confirmar → rode: ${pc.cyan('rnc clarify')}`);
 }
 
-async function extract(base: string, token: string, wsId: string): Promise<Analysis> {
+async function extract(base: string, token: string, wsId: string, sample?: number): Promise<Analysis> {
   const ws = await getWorkspace(base, token, wsId);
   log.step(`Lendo ${ws.stats?.totalModules ?? '?'} módulos…`);
   const modules = await listModules(base, token, wsId);
 
-  // deep-fetch the richest modules (by ruleCount) for rules/entities/findings
-  const targets = [...modules].sort((a, b) => b.ruleCount - a.ruleCount).slice(0, DEEP);
-  log.step(`Detalhando top ${targets.length} módulos por regras…`);
+  // Every module carrying rules is fetched. Sampling drops business rules —
+  // the one thing this pipeline must not do — so it is opt-in and reported.
+  const withRules = modules.filter((m) => m.ruleCount > 0);
+  const targets = sample ? [...withRules].sort((a, b) => b.ruleCount - a.ruleCount).slice(0, sample) : withRules;
+
+  log.step(`Detalhando ${targets.length} módulos com regras (paralelismo ${CONCURRENCY})…`);
   const details: ModuleDetail[] = [];
-  for (const m of targets) {
-    if (m.ruleCount === 0) continue;
-    details.push(await getModule(base, token, wsId, m.id));
+  let fetched = 0;
+  for (let i = 0; i < targets.length; i += CONCURRENCY) {
+    const batch = targets.slice(i, i + CONCURRENCY);
+    const got = await Promise.all(batch.map((m) => getModule(base, token, wsId, m.id)));
+    details.push(...got);
+    fetched += got.length;
+    process.stdout.write(`\r  ${pc.dim(`  ${fetched}/${targets.length} módulos`)}`);
   }
+  if (targets.length) process.stdout.write('\r' + ' '.repeat(40) + '\r');
 
   const lang = dominantLang(ws) ?? modules[0]?.language?.toLowerCase() ?? 'unknown';
   const debt = { critical: 0, high: 0, medium: 0, low: 0 };
@@ -160,7 +170,12 @@ async function extract(base: string, token: string, wsId: string): Promise<Analy
     unknowns.push({ ref: 'SOURCE', reason: 'DISCARDED', question: 'Fonte descartada no RNC — dúvidas de semântica não podem ser desempatadas', impact: 'high' });
   }
 
-  log.warn(`regras/entidades amostradas de ${details.length}/${modules.length} módulos (top por regras) — extração completa percorre todos`);
+  const skipped = withRules.length - details.length;
+  if (skipped > 0) {
+    log.warn(`AMOSTRADO: ${details.length}/${withRules.length} módulos com regras — ${skipped} módulo(s) NÃO extraído(s), regras perdidas`);
+  } else {
+    log.ok(`extração completa: ${details.length}/${withRules.length} módulos com regras (${modules.length - withRules.length} sem regras)`);
+  }
 
   return {
     workspace: wsId,

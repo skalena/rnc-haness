@@ -23,8 +23,10 @@ export async function mcpCmd(argv: string[]): Promise<void> {
       return who(base);
     case 'status':
       return status(base);
+    case 'token':
+      return printToken(base);
     default:
-      log.err(`subcomando desconhecido: mcp ${sub}  (login|logout|whoami|status)`);
+      log.err(`subcomando desconhecido: mcp ${sub}  (login|logout|whoami|status|token)`);
       process.exit(1);
   }
 }
@@ -199,6 +201,25 @@ async function status(base: string): Promise<void> {
   log.ok(`válida até ${cred.expiresAt}`);
   const def = readConfig().defaultWorkspace;
   if (def) log.info(`workspace padrão: ${def}`);
+}
+
+/**
+ * Print the raw token to stdout so it can be piped into an env var or an agent
+ * config (`export RNC_TOKEN=$(rnc mcp token)`), the way `gh auth token` works.
+ * Nothing else is written to stdout, so the output is safe to capture.
+ */
+function printToken(base: string): void {
+  const cred = loadCredential(base);
+  // errors go to stderr so a captured stdout is either the token or empty
+  if (!cred) {
+    process.stderr.write(`não autenticado (${base}) — rode: rnc mcp login\n`);
+    process.exit(1);
+  }
+  if (isExpired(cred)) {
+    process.stderr.write('token expirado — rode: rnc mcp login\n');
+    process.exit(1);
+  }
+  process.stdout.write(cred.accessToken + '\n');
 }
 
 function requireCred(base: string) {

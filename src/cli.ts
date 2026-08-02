@@ -15,7 +15,7 @@ import { verifyCmd } from './commands/verify.js';
 import { addCmd } from './commands/add.js';
 import { apiCmd } from './commands/api.js';
 
-const VERSION = '0.5.1';
+const VERSION = '0.6.0';
 
 /** Skalena plug-bot — cyan eyes + base, bold outline. */
 const BANNER = [
@@ -40,6 +40,7 @@ ${pc.bold('Auth')} (RNC MCP):
   ${pc.cyan('rnc mcp login')} --token <t>    autentica direto com token do web app
   ${pc.cyan('rnc mcp whoami')}               identidade + workspaces visíveis
   ${pc.cyan('rnc mcp status')}               estado da credencial local
+  ${pc.cyan('rnc mcp token')}                imprime o token (p/ export RNC_TOKEN=$(...))
   ${pc.cyan('rnc mcp logout')}               esquece token localmente
   ${pc.cyan('rnc config set workspace')} <n> define workspace padrão
 
