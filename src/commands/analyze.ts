@@ -1,4 +1,4 @@
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import pc from 'picocolors';
 import { parseFlags } from '../core/args.js';
@@ -7,6 +7,7 @@ import { Analysis, buildOrder, type Unknown } from '../core/analysis.js';
 import { baseUrl, readConfig } from '../core/config.js';
 import { loadCredential, isExpired, removeCredential } from '../core/credentials.js';
 import { whoami, resolveWorkspace, AuthError } from '../core/rnc.js';
+import { pickWorkspace } from '../core/pick.js';
 import { getWorkspace, listModules, getModule, type ModuleSummary, type ModuleDetail } from '../core/rncApi.js';
 import { log } from '../core/log.js';
 
@@ -28,10 +29,6 @@ export async function analyzeCmd(argv: string[]): Promise<void> {
   const { flags } = parseFlags(argv);
   const base = baseUrl(flags['base-url'] ? String(flags['base-url']) : undefined);
   const needle = flags.workspace ? String(flags.workspace) : readConfig().defaultWorkspace ?? null;
-  if (!needle) {
-    log.err('faltou --workspace <id|nome> (ou defina padrão: rnc config set workspace <nome>)');
-    process.exit(1);
-  }
 
   log.head('rnc analyze');
 
@@ -44,9 +41,10 @@ export async function analyzeCmd(argv: string[]): Promise<void> {
 
   let wsId: string;
   try {
-    log.step('Validando workspace via RNC…');
-    const me = await whoami(base, token);
-    const ws = resolveWorkspace(me, needle);
+    // nothing specified and no default → pick from the list instead of erroring
+    const ws = needle
+      ? resolveWorkspace(await whoami(base, token), needle)
+      : await pickWorkspace(base, token, 'Qual workspace analisar?');
     wsId = ws.id;
     if (ws.status !== 'READY') {
       log.err(`workspace não está READY (${ws.status}) — aguarde a ingestão`);
@@ -73,6 +71,11 @@ export async function analyzeCmd(argv: string[]): Promise<void> {
 
   const dir = ensureRncDir();
   writeFileSync(join(dir, 'analysis.json'), JSON.stringify(ir, null, 2) + '\n');
+  // record which workspace this project is bound to — init only had a placeholder
+  const lock = join(dir, 'harness.lock');
+  if (existsSync(lock)) {
+    writeFileSync(lock, readFileSync(lock, 'utf8').replace(/^workspace:.*$/m, `workspace: ${wsId}`));
+  }
 
   log.plain('');
   log.ok(`linguagem: ${ir.sourceLang}  ·  retenção: ${ir.sourceRetention}`);
@@ -80,9 +83,11 @@ export async function analyzeCmd(argv: string[]): Promise<void> {
   log.ok(`tech-debt: ${ir.techDebt.critical} crítico · ${ir.techDebt.high} alto · ${ir.techDebt.medium} médio · ${ir.techDebt.low} baixo`);
   log.plain('');
   log.info('ordem de build (blast-radius):');
-  for (const u of buildOrder(ir).slice(0, 5)) {
-    const bar = '█'.repeat(Math.max(1, Math.round(u.blastRadius / 4)));
-    log.plain(`     ${bar.padEnd(10)} ${u.complexity.padEnd(6)} ${u.id}  (${u.ruleCount} regras)`);
+  const top = buildOrder(ir).slice(0, 5);
+  const max = Math.max(1, ...top.map((u) => u.blastRadius)); // scale to the widest, so one huge module cannot blow up the line
+  for (const u of top) {
+    const bar = '█'.repeat(Math.max(1, Math.round((u.blastRadius / max) * 16)));
+    log.plain(`     ${bar.padEnd(17)} ${u.complexity.padEnd(6)} ${u.id}  (${u.ruleCount} regras)`);
   }
   log.plain('');
   log.ok(`salvo → .rnc/analysis.json`);
@@ -196,7 +201,7 @@ function bucket(m: ModuleSummary): 'HIGH' | 'MEDIUM' | 'LOW' {
   return score >= 20 ? 'HIGH' : score >= 8 ? 'MEDIUM' : 'LOW';
 }
 
-function dominantLang(ws: { stats?: { languageBreakdown?: Record<string, number> } }): string | null {
+function dominantLang(ws: { stats?: { languageBreakdown?: Record<string, number> } | null }): string | null {
   const lb = ws.stats?.languageBreakdown;
   if (!lb) return null;
   const top = Object.entries(lb).sort((a, b) => b[1] - a[1])[0];

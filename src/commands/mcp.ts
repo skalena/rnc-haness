@@ -137,13 +137,39 @@ async function loginWithToken(base: string, token: string): Promise<void> {
   });
 
   p.log.success(`token salvo (0600) · workspaces: ${me.workspaces.map((w) => w.name).join(', ') || '(nenhum)'}`);
-  const preferred = me.workspaces[0];
-  if (preferred) {
-    setDefaultWorkspace(preferred.id);
-    p.outro(`padrão: ${preferred.name}  ·  mudar: ${pc.cyan('rnc config set workspace <nome>')}`);
-  } else {
+  await chooseDefaultWorkspace(me.workspaces);
+}
+
+/**
+ * Pick the default workspace right after login. With several, ask — assuming
+ * the first one silently points the whole pipeline at the wrong legacy.
+ */
+async function chooseDefaultWorkspace(workspaces: { id: string; name: string; status: string; modules: number }[]): Promise<void> {
+  if (workspaces.length === 0) {
     p.outro('nenhum workspace visível para este tenant');
+    return;
   }
+  if (workspaces.length === 1) {
+    const only = workspaces[0]!;
+    setDefaultWorkspace(only.id);
+    p.outro(`padrão: ${only.name}  ·  mudar: ${pc.cyan('rnc config set workspace')}`);
+    return;
+  }
+  const choice = await p.select({
+    message: 'Workspace padrão',
+    options: workspaces.map((w) => ({
+      value: w.id,
+      label: w.name,
+      hint: `${w.status} · ${w.modules} módulos`,
+    })),
+  });
+  if (p.isCancel(choice)) {
+    p.outro(`sem padrão definido · escolha depois: ${pc.cyan('rnc config set workspace')}`);
+    return;
+  }
+  const ws = workspaces.find((w) => w.id === choice)!;
+  setDefaultWorkspace(ws.id);
+  p.outro(`padrão: ${ws.name}  ·  mudar: ${pc.cyan('rnc config set workspace')}`);
 }
 
 /** Read `exp` from a JWT without verifying it — display only, token stays opaque. */

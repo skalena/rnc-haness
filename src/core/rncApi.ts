@@ -34,16 +34,18 @@ const Stats = z
   })
   .partial();
 
+// Fields the API may legitimately send as null (workspace still ingesting, or
+// no datastore detected) — nullish, not just optional.
 export const WorkspaceFull = z.object({
   id: z.string(),
   name: z.string(),
   status: z.string(),
-  sourceRetention: z.string().optional(),
-  stats: Stats.optional(),
+  sourceRetention: z.string().nullish(),
+  stats: Stats.nullish(),
   datastore: z
-    .object({ vendor: z.string().optional(), label: z.string().optional(), dialect: z.string().optional() })
+    .object({ vendor: z.string().nullish(), label: z.string().nullish(), dialect: z.string().nullish() })
     .partial()
-    .optional(),
+    .nullish(),
 });
 export type WorkspaceFull = z.infer<typeof WorkspaceFull>;
 
@@ -51,35 +53,41 @@ export const ModuleSummary = z.object({
   id: z.string(),
   name: z.string(),
   status: z.string(),
-  language: z.string().optional(),
-  screenCount: z.number().default(0),
-  ruleCount: z.number().default(0),
-  fieldCount: z.number().default(0),
+  language: z.string().nullish(),
+  screenCount: z.number().nullish().transform((v) => v ?? 0),
+  ruleCount: z.number().nullish().transform((v) => v ?? 0),
+  fieldCount: z.number().nullish().transform((v) => v ?? 0),
 });
 export type ModuleSummary = z.infer<typeof ModuleSummary>;
 
+// The API sends null for anything it could not determine, so every optional
+// field here is nullish — a null must never abort an extraction.
 export const BusinessRule = z.object({
   id: z.string(),
-  description: z.string().optional(),
-  condition: z.string().optional(),
-  severity: z.string().optional(),
-  candidateType: z.string().optional(),
-  isUnambiguous: z.boolean().optional(),
-  requiresHumanReview: z.boolean().optional(),
-  completeness: z.string().optional(),
-  semanticKind: z.string().optional(),
+  description: z.string().nullish(),
+  condition: z.string().nullish(),
+  severity: z.string().nullish(),
+  candidateType: z.string().nullish(),
+  isUnambiguous: z.boolean().nullish(),
+  requiresHumanReview: z.boolean().nullish(),
+  completeness: z.string().nullish(),
+  semanticKind: z.string().nullish(),
 });
 
 export const ModuleDetail = z.object({
   id: z.string(),
   name: z.string(),
-  businessRules: z.array(BusinessRule).default([]),
+  businessRules: z.array(BusinessRule).nullish().transform((v) => v ?? []),
   dataModels: z
-    .array(z.object({ name: z.string().optional(), physicalName: z.string().optional(), fields: z.array(z.any()).optional() }))
-    .default([]),
-  persistence: z.object({ entities: z.array(z.string()).optional() }).partial().nullable().optional(),
-  qualityFindings: z.array(z.object({ severity: z.string().optional() })).default([]),
-  securityFindings: z.array(z.any()).default([]),
+    .array(z.object({ name: z.string().nullish(), physicalName: z.string().nullish(), fields: z.array(z.any()).nullish() }))
+    .nullish()
+    .transform((v) => v ?? []),
+  persistence: z.object({ entities: z.array(z.string()).nullish() }).partial().nullish(),
+  qualityFindings: z
+    .array(z.object({ severity: z.string().nullish() }))
+    .nullish()
+    .transform((v) => v ?? []),
+  securityFindings: z.array(z.any()).nullish().transform((v) => v ?? []),
 });
 export type ModuleDetail = z.infer<typeof ModuleDetail>;
 

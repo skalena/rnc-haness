@@ -3,7 +3,10 @@ import { join } from 'node:path';
 import pc from 'picocolors';
 import { parseFlags } from '../core/args.js';
 import { ensureRncDir } from '../core/state.js';
+import { baseUrl } from '../core/config.js';
 import { log } from '../core/log.js';
+
+const HARNESS_VERSION = '0.6.2';
 
 /**
  * Scaffold a project for the SDD workflow: functional docs skeleton (stack-
@@ -42,6 +45,9 @@ export async function initCmd(argv: string[]): Promise<void> {
   // MCP server pointer (Claude Code reads .mcp.json). SSE transport — the only
   // one Spring AI 1.0.0 ships (RNC-MCP-INTEGRATION.md §7). Token comes from
   // `rnc mcp login`; the same credential drives `claude mcp add rnc`.
+  // The base URL is written literally (it is not a secret and every agent
+  // resolves it the same way); only the token stays an env var, so the file is
+  // safe to commit. Populate it with: export RNC_TOKEN=$(rnc mcp token)
   write(
     join(cwd, '.mcp.json'),
     JSON.stringify(
@@ -49,7 +55,7 @@ export async function initCmd(argv: string[]): Promise<void> {
         mcpServers: {
           rnc: {
             type: 'sse',
-            url: '${RNC_BASE_URL}/sse',
+            url: `${baseUrl()}/sse`,
             headers: { Authorization: 'Bearer ${RNC_TOKEN}' },
           },
         },
@@ -59,8 +65,17 @@ export async function initCmd(argv: string[]): Promise<void> {
     ) + '\n',
   );
 
-  write(join(cwd, '.rnc', 'harness.lock'), `harness: 0.1.0\nworkspace: ${workspace}\n`);
-  write(join(cwd, '.env.example'), `RNC_WORKSPACE=${workspace}\nRNC_TOKEN=\n`);
+  write(join(cwd, '.rnc', 'harness.lock'), `harness: ${HARNESS_VERSION}\nworkspace: ${workspace}\n`);
+  write(
+    join(cwd, '.env.example'),
+    [
+      `RNC_BASE_URL=${baseUrl()}`,
+      '# preencha com: rnc mcp token',
+      'RNC_TOKEN=',
+      `RNC_WORKSPACE=${workspace}`,
+      '',
+    ].join('\n'),
+  );
 
   log.plain('');
   log.ok('docs/functional/  (5 arquivos, stack-neutros)');

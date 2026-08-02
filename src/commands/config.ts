@@ -2,6 +2,7 @@ import { parseFlags } from '../core/args.js';
 import { baseUrl, setDefaultWorkspace, readConfig } from '../core/config.js';
 import { loadCredential, isExpired } from '../core/credentials.js';
 import { whoami, resolveWorkspace } from '../core/rnc.js';
+import { pickWorkspace } from '../core/pick.js';
 import { log } from '../core/log.js';
 
 /**
@@ -23,16 +24,21 @@ export async function configCmd(argv: string[]): Promise<void> {
   }
 
   if (action === 'set' && key === 'workspace') {
-    const needle = rest[0];
-    if (!needle) {
-      log.err('uso: rnc config set workspace <nome|id>');
-      process.exit(1);
-    }
     const cred = loadCredential(base);
     if (!cred || isExpired(cred)) {
       log.err('não autenticado — rode: rnc mcp login');
       process.exit(1);
     }
+    const needle = rest[0];
+
+    // no argument → pick from the list, rather than making the user type a UUID
+    if (!needle) {
+      const ws = await pickWorkspace(base, cred.accessToken, 'Workspace padrão');
+      setDefaultWorkspace(ws.id);
+      log.ok(`workspace padrão: ${ws.name}  (${ws.id})`);
+      return;
+    }
+
     const me = await whoami(base, cred.accessToken);
     try {
       const ws = resolveWorkspace(me, needle);

@@ -15,7 +15,7 @@ import { verifyCmd } from './commands/verify.js';
 import { addCmd } from './commands/add.js';
 import { apiCmd } from './commands/api.js';
 
-const VERSION = '0.6.0';
+const VERSION = '0.6.2';
 
 /** Skalena plug-bot — cyan eyes + base, bold outline. */
 const BANNER = [
