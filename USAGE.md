@@ -227,6 +227,24 @@ claude mcp add rnc --transport sse "$RNC_BASE_URL/sse" \
   --header "Authorization: Bearer $RNC_TOKEN"
 ```
 
+### Connect other agents
+
+`rnc init` wires Claude Code. For the rest, `rnc add` renders the RNC MCP config
++ rules linkage + per-tool docs in each tool's dialect:
+
+```bash
+rnc add codex      # ~/.codex-style config.toml, mcp-remote bridge (SSE→stdio); reads AGENTS.md
+rnc add kiro       # .kiro/settings/mcp.json + steering pointing at docs/functional (no parallel spec)
+rnc add opencode   # opencode.json, native remote MCP (no bridge); reads AGENTS.md
+```
+
+Each writes `docs/agents/<tool>.md`. AGENTS.md is the shared spine — run
+`rnc init` first. Tools that speak MCP stdio only (Codex) use the `mcp-remote`
+bridge; tools with native remote MCP (OpenCode) point straight at the SSE
+endpoint. All obey the same AGENTS.md guardrails and are judged by the same
+`rnc trace --check` / `rnc verify` — the referee is external, so agents are
+swappable.
+
 ## End-to-end example
 
 ```bash

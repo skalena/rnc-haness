@@ -70,7 +70,10 @@ export async function doctorCmd(): Promise<void> {
   log.plain('');
   log.info('ferramentas de agente:');
   detectTool('Claude Code', existsSync(join(process.cwd(), '.mcp.json')) || existsSync(join(process.cwd(), 'CLAUDE.md')));
-  detectTool('AGENTS.md (Codex/OpenCode/Bob)', existsSync(join(process.cwd(), 'AGENTS.md')));
+  detectTool('AGENTS.md (espinha)', existsSync(join(process.cwd(), 'AGENTS.md')));
+  detectTool('Codex', existsSync(join(process.cwd(), '.codex', 'config.toml')));
+  detectTool('Kiro', existsSync(join(process.cwd(), '.kiro', 'settings', 'mcp.json')));
+  detectTool('OpenCode', existsSync(join(process.cwd(), 'opencode.json')));
 
   log.plain('');
   const summary = `${errors === 0 ? pc.green('0 erro') : pc.red(`${errors} erro`)} · ${warns} aviso`;

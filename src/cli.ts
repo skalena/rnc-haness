@@ -12,8 +12,9 @@ import { configCmd } from './commands/config.js';
 import { implementCmd } from './commands/implement.js';
 import { traceCmd } from './commands/trace.js';
 import { verifyCmd } from './commands/verify.js';
+import { addCmd } from './commands/add.js';
 
-const VERSION = '0.3.0';
+const VERSION = '0.4.0';
 
 const HELP = `
 ${pc.bold('rnc')} — RNC Harness CLI  ${pc.dim(`v${VERSION}`)}
@@ -30,6 +31,7 @@ ${pc.bold('Auth')} (RNC MCP):
 
 ${pc.bold('Fluxo SDD')} (ordem fixa):
   ${pc.cyan('rnc init')} [nome]              scaffold: docs funcionais + AGENTS.md + .mcp.json
+  ${pc.cyan('rnc add')} <codex|kiro|opencode> conecta outro agente (config MCP + regras + doc)
   ${pc.cyan('rnc analyze')} --workspace <id> puxa análise do legado (RNC MCP → IR)
   ${pc.cyan('rnc spec')}                     gera docs/functional/ (stack-neutras)
   ${pc.cyan('rnc clarify')}                  gate: pontos que o RNC não resolveu sozinho
@@ -54,6 +56,8 @@ async function main(): Promise<void> {
   switch (cmd) {
     case 'init':
       return initCmd(rest);
+    case 'add':
+      return addCmd(rest);
     case 'analyze':
       return analyzeCmd(rest);
     case 'spec':
