@@ -1,0 +1,19 @@
+id: flask
+kind: backend
+label: Flask (Python)
+lang: python
+port: 8000
+health: /health
+env: [DATABASE_URL]
+persistence: [postgres, mysql, mongo]
+test:
+  unit: pytest
+  integration: testcontainers-python
+  contract: schemathesis
+migration:
+  postgres: alembic
+  mysql: alembic
+  mongo: none
+compose:
+  build: ./backend
+  dependsOn: [db]

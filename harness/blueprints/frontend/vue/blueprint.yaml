@@ -1,0 +1,13 @@
+id: vue
+kind: frontend
+label: Vue.js
+lang: typescript
+port: 5173
+health: /
+apiClient: orval
+test:
+  component: vitest
+  e2e: playwright
+compose:
+  build: ./frontend
+  dependsOn: [backend]

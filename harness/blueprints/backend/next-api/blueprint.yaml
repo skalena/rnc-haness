@@ -1,0 +1,15 @@
+id: next-api
+kind: backend
+label: Next.js API (monorepo)
+lang: typescript
+port: 3000
+health: /api/health
+env: [DATABASE_URL]
+persistence: [sqlite, postgres]
+test:
+  unit: vitest
+  integration: pglite
+  contract: openapi-validator
+migration:
+  sqlite: drizzle
+  postgres: drizzle

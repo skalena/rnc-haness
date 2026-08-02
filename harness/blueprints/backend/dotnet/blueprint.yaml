@@ -1,0 +1,19 @@
+id: dotnet
+kind: backend
+label: .NET Core (C#)
+lang: csharp
+port: 8080
+health: /health
+env: [ConnectionStrings__Default]
+persistence: [postgres, mysql, mongo]
+test:
+  unit: xunit
+  integration: testcontainers
+  contract: schemathesis
+migration:
+  postgres: efcore
+  mysql: efcore
+  mongo: none
+compose:
+  build: ./backend
+  dependsOn: [db]

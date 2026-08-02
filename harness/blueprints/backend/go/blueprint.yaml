@@ -1,0 +1,19 @@
+id: go
+kind: backend
+label: Go
+lang: go
+port: 8080
+health: /healthz
+env: [DATABASE_URL]
+persistence: [postgres, mysql, mongo]
+test:
+  unit: gotest
+  integration: dockertest
+  contract: schemathesis
+migration:
+  postgres: golang-migrate
+  mysql: golang-migrate
+  mongo: none
+compose:
+  build: ./backend
+  dependsOn: [db]

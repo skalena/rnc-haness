@@ -1,0 +1,13 @@
+# Controls the published tarball. When present, .gitignore is NOT consulted,
+# so dist/ (gitignored) is still packed. Whitelist-by-exclusion.
+src/
+tests/
+.rnc/
+.env
+.npmrc
+.nvmrc
+tsconfig.json
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+.github/
+RNC-MCP-INTEGRATION.md

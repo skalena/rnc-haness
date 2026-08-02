@@ -1,0 +1,19 @@
+id: quarkus
+kind: backend
+label: Quarkus (Java)
+lang: java
+port: 8080
+health: /q/health
+env: [DB_URL, DB_USER, DB_PASS]
+persistence: [postgres, mysql, mongo]
+test:
+  unit: junit5
+  integration: testcontainers
+  contract: schemathesis
+migration:
+  postgres: flyway
+  mysql: flyway
+  mongo: none
+compose:
+  build: ./backend
+  dependsOn: [db]

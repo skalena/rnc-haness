@@ -1,0 +1,6 @@
+id: sqlite
+kind: database
+label: SQLite
+port: 0
+env: [DATABASE_URL]
+test: {}

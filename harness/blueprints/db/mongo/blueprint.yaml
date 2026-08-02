@@ -1,0 +1,9 @@
+id: mongo
+kind: database
+label: MongoDB
+port: 27017
+image: mongo:7
+health: mongosh --eval "db.adminCommand('ping')"
+env: [MONGO_INITDB_ROOT_USERNAME, MONGO_INITDB_ROOT_PASSWORD]
+volume: mongodata:/data/db
+test: {}

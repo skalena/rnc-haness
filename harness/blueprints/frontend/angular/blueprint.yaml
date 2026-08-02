@@ -1,0 +1,13 @@
+id: angular
+kind: frontend
+label: Angular
+lang: typescript
+port: 4200
+health: /
+apiClient: ng-openapi-gen
+test:
+  unit: jest
+  e2e: playwright
+compose:
+  build: ./frontend
+  dependsOn: [backend]

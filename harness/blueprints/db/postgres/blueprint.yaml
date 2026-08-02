@@ -1,0 +1,9 @@
+id: postgres
+kind: database
+label: PostgreSQL
+port: 5432
+image: postgres:17
+health: pg_isready -U $POSTGRES_USER
+env: [POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB]
+volume: pgdata:/var/lib/postgresql/data
+test: {}

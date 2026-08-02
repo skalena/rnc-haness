@@ -1,0 +1,9 @@
+id: golden
+label: Next.js monorepo + SQLite
+description: >
+  Caminho mais simples. Next.js como frontend E backend, SQLite via Drizzle,
+  tudo num monorepo. Único combo sem docker — 1 processo, 1 arquivo .db.
+frontend: next
+backend: next-api
+database: sqlite
+runtime: none

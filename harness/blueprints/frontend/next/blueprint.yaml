@@ -1,0 +1,13 @@
+id: next
+kind: frontend
+label: Next.js
+lang: typescript
+port: 3000
+health: /
+apiClient: openapi-typescript
+test:
+  component: vitest
+  e2e: playwright
+compose:
+  build: ./frontend
+  dependsOn: [backend]
