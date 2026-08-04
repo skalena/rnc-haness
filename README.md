@@ -1,50 +1,77 @@
-# RNC Harness CLI (`rnc`)
+# RNC Harness
 
-Spec-driven modernization of legacy systems into **testable, containerized**
-architectures. The legacy analysis comes from **RNC via MCP**; the workflow is
-fixed for every user, and the target stack is composable.
+Modernize a legacy system into an application whose every business rule traces
+back to the rule it came from — and prove it, in CI.
 
-Inspired by [github/spec-kit](https://github.com/github/spec-kit) — but the
-payload is the RNC MCP server plus an SDD method extracted from a real
-modernization (Delphi → Next.js), not generic templates.
+**Your agent is the front door; `rnc` is the engine.** You talk to Claude Code
+(or Codex, Cursor, OpenCode); it calls `rnc` for the parts that have to be
+deterministic. See [USAGE.md](./USAGE.md).
+
+```bash
+npm i -g @skalena/rnc
+rnc mcp login
+rnc install          # skills → .claude/skills
+claude
+```
+
+```
+> moderniza o legado do workspace SIFAP
+```
 
 ## Why it exists
 
-Every RNC workspace holds a *different* legacy (Delphi, COBOL, VB6, NATURAL,
-PL/SQL…). RNC normalizes any of them into one legacy-neutral **IR**
-(`src/core/analysis.ts`). Because every phase keys off the IR — never the raw
-source language — the user-facing workflow is identical across all of them.
+The expensive, risky part of a modernization is not writing the new code — it is
+**understanding what the old system actually does and proving the rules
+survived**. That is where these projects bleed.
 
-## The workflow (fixed)
+Every RNC workspace holds a different legacy (Delphi, COBOL, VB6, NATURAL,
+Java…). RNC normalizes any of them into one legacy-neutral **IR**
+(`src/core/analysis.ts`). Every phase keys off the IR, never the raw source
+language, so the workflow is identical across all of them. Exercised, not
+asserted: the same pipeline runs over a Java workspace (SAFO, 79 modules, 1699
+rules) and a NATURAL one (SIFAP).
 
+## Skills, not a command ritual
+
+Four skills, split by who invokes them:
+
+| Skill | Invoked by | Role |
+|---|---|---|
+| `rnc-modernize` | **you** | conducts the flow: which workspace → extract → clarify gate → contract → architecture → build → verify |
+| `rnc-provenance` | the agent, on its own | porting a rule auditably: every invariant cites its `BR-NNN` |
+| `rnc-guardrails` | the agent, on its own | traps already paid for: money as float, build that needs a database, endpoint reachable without auth, stock race |
+| `rnc-verify` | the agent, on its own | run the command instead of claiming it works |
+
+Install across 70+ agents with [`skills`](https://github.com/vercel-labs/skills):
+
+```bash
+npx skills@latest add skalena/rnc-haness
 ```
-analyze → spec → clarify → stack → runtime → (roadmap → implement → verify → trace)
-```
 
-| Command | Does |
-|---|---|
-| `rnc init [name]` | scaffold: functional docs, `AGENTS.md` (+ thin `CLAUDE.md`), `.mcp.json` → RNC |
-| `rnc analyze --workspace <id>` | pull legacy analysis from RNC MCP → IR (`.rnc/analysis.json`) |
-| `rnc spec` | generate `docs/functional/` — **stack-neutral**, the source of truth |
-| `rnc clarify` | gate: unknowns RNC could not resolve (ambiguous/discarded/low-confidence) |
-| `rnc stack` | choose target architecture (front × back × db) |
-| `rnc runtime up` | golden → no docker · everything else → generated `docker-compose.yaml` |
-| `rnc doctor` | diagnose harness + project |
+## What the CLI keeps
 
-`implement / verify / trace / roadmap` are the next milestones (see below).
+The skills carry judgement. The CLI carries what a prompt cannot do twice the
+same way:
+
+- **Deterministic extraction** — same workspace in, same IR out. Not sampled: losing a business rule is the one failure this pipeline exists to prevent.
+- **Gates** — high-impact ambiguity blocks code generation. A gate the agent can waive is not a gate.
+- **An external referee** — `rnc trace --check` and `rnc api check` exit 1 on drift. The author is never the judge; in a regulated migration, independent verification *is* the product.
+
+Neither half works alone: prompts cannot guarantee reproducibility, and a CLI
+cannot conduct an interview or write a domain layer.
 
 ## Three layers of docs
 
-- `docs/functional/` — **stack-neutral**, survives any stack change (from RNC IR)
-- `docs/api/openapi.yaml` — the single API contract; front, back, tests, docs all derive from it
-- `docs/technical/` — **per-stack**, generated at `implement` time
+- `docs/functional/` — **stack-neutral**, the source of truth, survives any stack change
+- `docs/api/openapi.yaml` — the single contract; client, stubs, contract tests, mocks and docs all derive from it
+- `docs/technical/` — **per-stack**, generated at build time
 
 ## Architecture: blueprints + contracts, not 72 templates
 
 3 frontends × 6 backends × 4 databases would be unmaintainable as fixed
-templates. Instead: one **blueprint** per technology (`harness/blueprints/`)
-bound by four **contracts** (`harness/contracts/`). A composer
-(`src/core/composer.ts`) assembles a valid combo and emits the runtime.
+templates. Instead one **blueprint** per technology (`harness/blueprints/`) bound
+by four **contracts** (`harness/contracts/`); a composer (`src/core/composer.ts`)
+assembles a valid combo and emits the runtime.
 
 ```
 frontend   next · vue · angular
@@ -53,50 +80,25 @@ database   postgres · mysql · mongo · sqlite
 golden     next + next-api + sqlite   (the only no-docker combo)
 ```
 
-Testability is a contract, not an afterthought: integration tests run against
-the **real database** via Testcontainers (PGlite for the monorepo).
+Testability is a contract, not an afterthought: integration tests run against the
+**real** database via Testcontainers (PGlite for the monorepo).
 
-## rnc and Claude Code — both directions
+## Scope
 
-The same binary works two ways:
+Delivers a new system, built from the legacy and verified against the spec.
 
-- **rnc → Claude Code** (outside-in, batch/CI): `rnc implement` derives a
-  milestone from the IR + stack, enforces the clarify gate, and spawns Claude
-  Code headless inside the scaffold it wired.
-- **Claude Code → rnc** (inside-out, interactive): during a session Claude Code
-  runs `rnc` over Bash as deterministic tools + a self-referee — `rnc analyze`,
-  `rnc spec`, `rnc stack`, `rnc runtime`, and `rnc trace --check` on its own
-  output. The generated `AGENTS.md` wires when to call each, and forbids calling
-  `rnc implement` from inside a session (it would recurse into another agent).
+Deliberately **not** covered yet — the crossing from old to new: data migration
+(production data violates the new invariants), cutover (strangler sequencing,
+rollback), and parallel-run (both systems fed the same inputs, outputs diffed).
+Those need live production access and business coordination, not code
+generation. The IR is the raw material for automating them later.
 
-## Multi-tool by design
-
-`AGENTS.md` is the shared spine (read by Codex, OpenCode, IBM Bob); `CLAUDE.md`
-is a one-line import of it; `.mcp.json` wires the RNC MCP server for Claude Code.
-One canonical harness, rendered into each agent tool's dialect.
-
-## Run it (dev)
+## Development
 
 ```bash
 npm install
-npm run dev -- --help
-npm run dev -- stack --golden
-npm run dev -- stack --front vue --back quarkus --db postgres
-npm run dev -- runtime up          # writes docker-compose.yaml
+npm run build
+node dist/cli.js --help
 ```
 
-## Status
-
-Working now: `init`, `analyze` (stub IR), `spec`, `clarify`, `stack` (composer +
-validation), `runtime` (docker-compose generation), `doctor`.
-
-Seams / next milestones:
-
-1. **RNC MCP client** (`src/core/rnc.ts`) — replace the `analyze` stub with live
-   `getModules/getRules/getModuleScreens/getSourceFile` calls.
-2. **`rnc api`** — generate `openapi.yaml` from the functional spec.
-3. **`rnc implement M<n>`** — render spec → chosen stack via blueprints, with
-   Definition-of-Done + verification (Testcontainers).
-4. **`rnc verify` / `rnc trace`** — run DoD checks; fail CI on code↔spec↔RNC drift.
-5. **Persistence adapters** (backend × db) — the real, bounded work.
-6. **Skills/agents** — `containerize`, `compose`, `ci-cd`, `deploy` (→ rnc.skalena.com).
+Requires Node ≥ 20.12.
