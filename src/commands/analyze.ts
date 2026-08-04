@@ -41,10 +41,12 @@ export async function analyzeCmd(argv: string[]): Promise<void> {
 
   let wsId: string;
   try {
-    // nothing specified and no default → pick from the list instead of erroring
-    const ws = needle
-      ? resolveWorkspace(await whoami(base, token), needle)
-      : await pickWorkspace(base, token, 'Qual workspace analisar?');
+    // --pick forces the list even when a default is set; otherwise a stored
+    // default is used silently and nothing specified falls back to the list
+    const ws =
+      needle && !flags.pick
+        ? resolveWorkspace(await whoami(base, token), needle)
+        : await pickWorkspace(base, token, 'Qual workspace analisar?');
     wsId = ws.id;
     if (ws.status !== 'READY') {
       log.err(`workspace não está READY (${ws.status}) — aguarde a ingestão`);

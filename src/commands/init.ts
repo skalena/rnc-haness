@@ -3,10 +3,12 @@ import { join } from 'node:path';
 import pc from 'picocolors';
 import { parseFlags } from '../core/args.js';
 import { ensureRncDir } from '../core/state.js';
-import { baseUrl } from '../core/config.js';
+import { baseUrl, readConfig, setDefaultWorkspace } from '../core/config.js';
+import { loadCredential, isExpired } from '../core/credentials.js';
+import { pickWorkspace } from '../core/pick.js';
 import { log } from '../core/log.js';
 
-const HARNESS_VERSION = '0.6.2';
+const HARNESS_VERSION = '0.7.0';
 
 /**
  * Scaffold a project for the SDD workflow: functional docs skeleton (stack-
@@ -17,7 +19,19 @@ export async function initCmd(argv: string[]): Promise<void> {
   const { _, flags } = parseFlags(argv);
   const cwd = process.cwd();
   const name = _[0] ?? 'app';
-  const workspace = flags.workspace ? String(flags.workspace) : '<RNC_WORKSPACE_ID>';
+  // resolve the workspace up front: flag → stored default → pick from the list.
+  // A placeholder is only left behind when nobody is authenticated yet.
+  let workspace = flags.workspace ? String(flags.workspace) : readConfig().defaultWorkspace ?? '';
+  if (!workspace) {
+    const cred = loadCredential(baseUrl());
+    if (cred && !isExpired(cred)) {
+      const ws = await pickWorkspace(baseUrl(), cred.accessToken, 'Workspace RNC deste projeto');
+      workspace = ws.id;
+      setDefaultWorkspace(ws.id);
+    } else {
+      workspace = '<RNC_WORKSPACE_ID>';
+    }
+  }
 
   log.head(`rnc init — ${name}`);
 
@@ -81,11 +95,14 @@ export async function initCmd(argv: string[]): Promise<void> {
   log.ok('docs/functional/  (5 arquivos, stack-neutros)');
   log.ok('docs/api/  docs/technical/');
   log.ok('AGENTS.md + CLAUDE.md (import)');
-  log.ok('.mcp.json  → rnc @ https://rnc.skalena.com/mcp');
+  log.ok(`.mcp.json  → rnc @ ${baseUrl()}/sse`);
   log.ok('.rnc/harness.lock · .env.example');
   log.plain('');
+  log.plain('  conectar o Claude Code a este projeto:');
+  log.plain(`    ${pc.cyan('export RNC_TOKEN=$(rnc mcp token)')}`);
+  log.plain('');
   log.plain('  próximos passos:');
-  log.plain(`    ${pc.cyan(`rnc analyze --workspace ${workspace}`)}`);
+  log.plain(`    ${pc.cyan('rnc analyze')}`);
   log.plain(`    ${pc.cyan('rnc spec')}   ${pc.dim('# gera docs funcionais')}`);
   log.plain(`    ${pc.cyan('rnc stack')}  ${pc.dim('# escolhe arquitetura alvo')}`);
 }
