@@ -155,6 +155,18 @@ export function resolveWorkspace(me: WhoAmI, needle: string): Workspace {
   const byId = me.workspaces.find((w) => w.id === needle);
   if (byId) return byId;
   const lower = needle.toLowerCase();
+
+  // An exact name wins outright. Without this, asking for "MasterApp" in a
+  // tenant that also holds "MasterApp Delphi" is rejected as ambiguous — even
+  // though one of them is precisely what was asked for.
+  const exact = me.workspaces.filter((w) => w.name.toLowerCase() === lower);
+  if (exact.length === 1) return exact[0]!;
+  if (exact.length > 1) {
+    throw new Error(
+      `'${needle}' nomeia ${exact.length} workspaces — use o id: ${exact.map((w) => w.id).join(', ')}`,
+    );
+  }
+
   const byName = me.workspaces.filter((w) => w.name.toLowerCase().startsWith(lower));
   if (byName.length === 1) return byName[0]!;
   if (byName.length > 1) {

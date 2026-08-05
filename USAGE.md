@@ -9,58 +9,50 @@ be deterministic. You should rarely type an `rnc` command yourself.
 
 ---
 
-## Quick start — Claude Code plugin
-
-```
-/plugin marketplace add skalena/rnc-haness
-/plugin install rnc@skalena
-/rnc-login
-```
-
-```
-> moderniza o legado do workspace MasterApp Delphi
-```
-
-That is the whole setup. The plugin ships the skills, the slash commands, the
-RNC MCP server and a session hook; the engine runs through `npx`, so there is
-nothing to install globally. The agent lists your workspaces, asks which one,
-extracts the rules, brings you what is ambiguous, proposes an architecture,
-builds milestone by milestone and verifies.
-
-`/rnc-login` will offer to add this to your shell profile — it is what lets the
-**MCP tools** (module-level zoom) connect in later sessions. The CLI itself
-works without it:
-
-```bash
-export RNC_TOKEN=$(npx -y @skalena/rnc mcp token)
-```
-
-### Other agents
-
-Codex, Cursor, OpenCode and 70+ more, via
-[`skills`](https://github.com/vercel-labs/skills):
-
-```bash
-npx skills@latest add skalena/rnc-haness
-```
-
-### Engine only
+## Quick start
 
 ```bash
 npm i -g @skalena/rnc
-rnc mcp login
-rnc install          # skills → .claude/skills (--global for every project)
+rnc mcp login                 # masked prompt
+rnc workspaces                # list, pick the legacy to work on
+```
+
+```bash
+cd my-project
+rnc init my-app
+rnc analyze                   # RNC → IR
+rnc spec                      # → docs/functional/
+rnc clarify                   # gate: what RNC could not resolve
+rnc api gen                   # the OpenAPI contract
+rnc stack --golden            # target architecture
+rnc runtime up
 ```
 
 Requires Node ≥ 20.12.
 
-## Slash commands
+Authentication without an interactive prompt (CI, or a token on the clipboard):
 
-| Command | Does |
-|---|---|
-| `/rnc-modernize [workspace]` | conducts the whole modernization |
-| `/rnc-login` | authenticates, and sets up the MCP token |
-| `/rnc-status` | auth, bound workspace, milestone progress, drift |
+```bash
+pbpaste | rnc mcp login --stdin
+rnc mcp login --token <t>     # convenient, but lands in shell history
+```
+
+## Letting an agent drive
+
+Optional. Install the skills and the agent runs the same commands for you:
+
+```bash
+rnc install                              # → .claude/skills (--global for all projects)
+npx skills@latest add skalena/rnc-haness # Codex, Cursor, OpenCode, 70+ more
+```
+
+Then ask for what you want — "moderniza o legado do workspace X" — and it lists
+your workspaces, extracts, brings you the ambiguous points, and verifies.
+
+This repo also carries a Claude Code plugin manifest
+(`/plugin marketplace add skalena/rnc-haness`), which additionally wires the RNC
+MCP server for module-level zoom. **The CLI is the supported path**; the plugin
+is a convenience on top of it.
 
 ---
 

@@ -3,38 +3,39 @@
 Modernize a legacy system into an application whose every business rule traces
 back to the rule it came from — and prove it, in CI.
 
-**Your agent is the front door; `rnc` is the engine.** You talk to Claude Code
-(or Codex, Cursor, OpenCode); it calls `rnc` for the parts that have to be
-deterministic. See [USAGE.md](./USAGE.md).
+`rnc` is a CLI. Run it yourself, or let an agent run it — the commands are the
+same either way, and they are the part that has to be deterministic. See
+[USAGE.md](./USAGE.md).
 
-## Install (Claude Code plugin)
-
-```
-/plugin marketplace add skalena/rnc-haness
-/plugin install rnc@skalena
-/rnc-login
-```
-
-That is all. The plugin ships the skills, the slash commands, the RNC MCP
-server and a session hook that tells the agent what is missing — and the engine
-runs through `npx`, so there is nothing to install globally.
-
-```
-> moderniza o legado do workspace MasterApp Delphi
-```
-
-Other agents (Codex, Cursor, OpenCode, 70+ more) via
-[`skills`](https://github.com/vercel-labs/skills):
+## Install
 
 ```bash
-npx skills@latest add skalena/rnc-haness
+npm i -g @skalena/rnc
+rnc mcp login                    # masked prompt; or: pbpaste | rnc mcp login --stdin
+rnc workspaces                   # list and pick the legacy to work on
 ```
 
-Or the engine on its own:
+Then, in the project directory:
 
 ```bash
-npm i -g @skalena/rnc && rnc mcp login
+rnc init my-app
+rnc analyze && rnc spec && rnc clarify
+rnc stack --golden
 ```
+
+Requires Node ≥ 20.12.
+
+### Optional: teach your agent the method
+
+```bash
+rnc install                      # skills → .claude/skills
+npx skills@latest add skalena/rnc-haness   # or: Codex, Cursor, OpenCode, 70+ more
+```
+
+With the skills installed you can ask the agent to drive instead — "moderniza o
+legado do workspace X" — and it calls the same commands. A Claude Code plugin
+manifest also ships in this repo (`/plugin marketplace add skalena/rnc-haness`);
+the CLI is the supported path.
 
 ## Why it exists
 
