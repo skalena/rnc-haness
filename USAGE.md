@@ -9,35 +9,58 @@ be deterministic. You should rarely type an `rnc` command yourself.
 
 ---
 
-## Quick start
+## Quick start — Claude Code plugin
 
-```bash
-npm i -g @skalena/rnc          # the engine
-rnc mcp login                  # authenticate against RNC
 ```
-
-```bash
-cd my-project
-rnc install                    # skills → .claude/skills (--global for every project)
-export RNC_TOKEN=$(rnc mcp token)   # lets the agent zoom into modules over MCP
-claude
+/plugin marketplace add skalena/rnc-haness
+/plugin install rnc@skalena
+/rnc-login
 ```
 
 ```
-> moderniza o legado do workspace SIFAP
+> moderniza o legado do workspace MasterApp Delphi
 ```
 
-That is the whole setup. The agent lists your workspaces, asks which one,
+That is the whole setup. The plugin ships the skills, the slash commands, the
+RNC MCP server and a session hook; the engine runs through `npx`, so there is
+nothing to install globally. The agent lists your workspaces, asks which one,
 extracts the rules, brings you what is ambiguous, proposes an architecture,
 builds milestone by milestone and verifies.
 
-Installing the skills across other agents (Codex, Cursor, OpenCode, 70+ more):
+`/rnc-login` will offer to add this to your shell profile — it is what lets the
+**MCP tools** (module-level zoom) connect in later sessions. The CLI itself
+works without it:
+
+```bash
+export RNC_TOKEN=$(npx -y @skalena/rnc mcp token)
+```
+
+### Other agents
+
+Codex, Cursor, OpenCode and 70+ more, via
+[`skills`](https://github.com/vercel-labs/skills):
 
 ```bash
 npx skills@latest add skalena/rnc-haness
 ```
 
+### Engine only
+
+```bash
+npm i -g @skalena/rnc
+rnc mcp login
+rnc install          # skills → .claude/skills (--global for every project)
+```
+
 Requires Node ≥ 20.12.
+
+## Slash commands
+
+| Command | Does |
+|---|---|
+| `/rnc-modernize [workspace]` | conducts the whole modernization |
+| `/rnc-login` | authenticates, and sets up the MCP token |
+| `/rnc-status` | auth, bound workspace, milestone progress, drift |
 
 ---
 

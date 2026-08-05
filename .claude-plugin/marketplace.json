@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "skalena",
+  "description": "Skalena tooling for legacy modernization driven by RNC analysis",
+  "owner": {
+    "name": "Skalena",
+    "url": "https://github.com/skalena"
+  },
+  "plugins": [
+    {
+      "name": "rnc",
+      "description": "Modernize a legacy system from an RNC workspace — traceable to the original business rules, verified by an external referee",
+      "source": "./",
+      "category": "development"
+    }
+  ]
+}

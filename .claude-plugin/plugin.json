@@ -1,0 +1,24 @@
+{
+  "name": "rnc",
+  "version": "0.8.0",
+  "description": "Modernize a legacy system analyzed in RNC into an application whose every business rule traces back to the rule it came from",
+  "author": {
+    "name": "Skalena",
+    "url": "https://skalena.com"
+  },
+  "repository": "https://github.com/skalena/rnc-haness",
+  "keywords": [
+    "legacy-modernization",
+    "spec-driven-development",
+    "rnc",
+    "delphi",
+    "cobol",
+    "natural",
+    "traceability"
+  ],
+  "commands": [
+    "./commands/rnc-modernize.md",
+    "./commands/rnc-login.md",
+    "./commands/rnc-status.md"
+  ]
+}

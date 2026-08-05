@@ -7,15 +7,33 @@ back to the rule it came from — and prove it, in CI.
 (or Codex, Cursor, OpenCode); it calls `rnc` for the parts that have to be
 deterministic. See [USAGE.md](./USAGE.md).
 
-```bash
-npm i -g @skalena/rnc
-rnc mcp login
-rnc install          # skills → .claude/skills
-claude
-```
+## Install (Claude Code plugin)
 
 ```
-> moderniza o legado do workspace SIFAP
+/plugin marketplace add skalena/rnc-haness
+/plugin install rnc@skalena
+/rnc-login
+```
+
+That is all. The plugin ships the skills, the slash commands, the RNC MCP
+server and a session hook that tells the agent what is missing — and the engine
+runs through `npx`, so there is nothing to install globally.
+
+```
+> moderniza o legado do workspace MasterApp Delphi
+```
+
+Other agents (Codex, Cursor, OpenCode, 70+ more) via
+[`skills`](https://github.com/vercel-labs/skills):
+
+```bash
+npx skills@latest add skalena/rnc-haness
+```
+
+Or the engine on its own:
+
+```bash
+npm i -g @skalena/rnc && rnc mcp login
 ```
 
 ## Why it exists
@@ -30,6 +48,15 @@ Java…). RNC normalizes any of them into one legacy-neutral **IR**
 language, so the workflow is identical across all of them. Exercised, not
 asserted: the same pipeline runs over a Java workspace (SAFO, 79 modules, 1699
 rules) and a NATURAL one (SIFAP).
+
+## What the plugin gives you
+
+| Piece | What it does |
+|---|---|
+| **skills** | the agent knows the method, the guardrails and the verification discipline |
+| **`/rnc-modernize` `/rnc-login` `/rnc-status`** | explicit entry points when you want them |
+| **MCP server** | wired automatically — module-level zoom (`getModuleRules`, `getModuleDataModel`) |
+| **session hook** | reports auth and project state at startup, so neither you nor the agent has to go looking |
 
 ## Skills, not a command ritual
 
