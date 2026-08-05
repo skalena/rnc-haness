@@ -53,7 +53,7 @@ ${pc.bold('Auth')} (RNC MCP):
 
 ${pc.bold('Fluxo SDD')} (ordem fixa):
   ${pc.cyan('rnc init')} [nome]              scaffold: docs funcionais + AGENTS.md + .mcp.json
-  ${pc.cyan('rnc add')} <codex|kiro|opencode> conecta outro agente (config MCP + regras + doc)
+  ${pc.cyan('rnc add')} [agente]             conecta agente (MCP + regras + doc); sem argumento, lista os instalados
   ${pc.cyan('rnc analyze')} [--pick]         puxa análise do legado (RNC → IR); --pick escolhe da lista
   ${pc.cyan('rnc spec')}                     gera docs/functional/ (stack-neutras)
   ${pc.cyan('rnc clarify')}                  gate: pontos que o RNC não resolveu sozinho

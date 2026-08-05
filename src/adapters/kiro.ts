@@ -1,5 +1,14 @@
 import { join } from 'node:path';
-import { write, DEFAULT_BASE, TOKEN_NOTE, type Adapter, type AddResult } from './types.js';
+import { appInstalled, firstHit, inHome, onPath } from './detect.js';
+import {
+  write,
+  LOGIN_NOTE,
+  MCP_ARGS,
+  MCP_COMMAND,
+  type Adapter,
+  type AddResult,
+  type Detection,
+} from './types.js';
 
 /**
  * Kiro (AWS) — a spec-driven IDE. Best cultural fit, but it has its OWN spec
@@ -10,7 +19,14 @@ import { write, DEFAULT_BASE, TOKEN_NOTE, type Adapter, type AddResult } from '.
 export const kiro: Adapter = {
   id: 'kiro',
   label: 'Kiro (AWS)',
-  transport: 'stdio-bridge',
+  transport: 'stdio-proxy',
+  detect(): Detection {
+    return firstHit([
+      [appInstalled('Kiro.app'), 'Kiro.app'],
+      [onPath('kiro'), 'kiro no PATH'],
+      [inHome('.kiro'), '~/.kiro'],
+    ]);
+  },
   apply(cwd: string, res: AddResult): void {
     write(
       join(cwd, '.kiro', 'settings', 'mcp.json'),
@@ -18,8 +34,8 @@ export const kiro: Adapter = {
         {
           mcpServers: {
             rnc: {
-              command: 'npx',
-              args: ['-y', 'mcp-remote', `${DEFAULT_BASE}/sse`, '--header', 'Authorization: Bearer ${RNC_TOKEN}'],
+              command: MCP_COMMAND,
+              args: MCP_ARGS,
               disabled: false,
             },
           },
@@ -34,7 +50,7 @@ export const kiro: Adapter = {
     write(join(cwd, '.kiro', 'steering', 'rnc.md'), steering(), res, '.kiro/steering/rnc.md');
     write(join(cwd, 'docs', 'agents', 'kiro.md'), doc(), res, 'docs/agents/kiro.md');
     res.notes.push('IMPORTANTE: a spec é docs/functional/ (do rnc) — NÃO deixe o Kiro gerar spec paralela.');
-    res.notes.push(TOKEN_NOTE);
+    res.notes.push(LOGIN_NOTE);
   },
 };
 
@@ -67,7 +83,7 @@ function doc(): string {
 Kiro é IDE spec-driven — o melhor encaixe cultural, com um risco: spec dupla.
 
 ## Config gerada
-- \`.kiro/settings/mcp.json\` — server MCP \`rnc\` via ponte \`mcp-remote\`.
+- \`.kiro/settings/mcp.json\` — server MCP \`rnc\` via \`npx -y @skalena/rnc mcp proxy\`.
 - \`.kiro/steering/rnc.md\` — steering \`inclusion: always\` que aponta o Kiro pra
   \`docs/functional/\` como spec e proíbe spec paralela.
 - Regras completas: **AGENTS.md**.
@@ -77,7 +93,8 @@ Kiro quer gerar requirements/design/tasks próprios. Aqui a fonte é
 \`docs/functional/\` (do RNC). O steering força isso — não duplique.
 
 ## Transporte / token
-Ponte \`mcp-remote\` (SSE→stdio). Substitua \`\${RNC_TOKEN}\`. Não comite.
+Servidor stdio local (\`rnc mcp proxy\`) faz a ponte pro SSE do RNC. Sem token no
+arquivo: o proxy lê a credencial de \`rnc mcp login\`.
 
 ## Como o Kiro age
 Lê a spec de \`docs/functional/\`, dá tasks a partir dela, chama \`rnc\` como

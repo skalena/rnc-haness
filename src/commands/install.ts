@@ -48,5 +48,5 @@ export async function installCmd(argv: string[]): Promise<void> {
   log.plain(`    ${pc.cyan('claude')}`);
   log.plain(`    ${pc.dim('> moderniza meu legado')}`);
   log.plain('');
-  log.info('para o MCP do RNC no agente: export RNC_TOKEN=$(rnc mcp token)');
+  log.info('para o MCP do RNC no agente: `rnc mcp login` e depois `rnc add` (sem token no ambiente)');
 }
