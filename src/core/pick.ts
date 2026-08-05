@@ -18,6 +18,18 @@ export async function pickWorkspace(base: string, token: string, message = 'Work
   }
   if (me.workspaces.length === 1) return me.workspaces[0]!;
 
+  // No TTY (an agent running us over a pipe, or CI): a prompt would crash with
+  // uv_tty_init EINVAL. Say what to do instead of dying on an unusable prompt.
+  if (!process.stdin.isTTY) {
+    process.stderr.write(
+      `rnc: vários workspaces e nenhum padrão definido (ambiente não-interativo).\n` +
+        `Escolha um com: rnc config set workspace <nome|id>\n` +
+        me.workspaces.map((w) => `  ${w.name}  (${w.modules} módulos)  ${w.id}`).join('\n') +
+        '\n',
+    );
+    process.exit(1);
+  }
+
   const ready = [...me.workspaces].sort((a, b) => {
     if (a.status !== b.status) return a.status === 'READY' ? -1 : 1;
     return b.modules - a.modules;

@@ -40,7 +40,18 @@ rnc workspaces --list
 
 Apresente as opções com `AskUserQuestion` usando nome · linguagem · nº de
 módulos, porque o mesmo sistema costuma ser ingerido mais de uma vez e a lista
-fica ilegível sem isso.
+fica ilegível sem isso. Pergunte **mesmo que já exista um padrão** — diga qual
+está selecionado e deixe confirmar ou trocar.
+
+Registre a escolha antes de seguir:
+
+```bash
+rnc config set workspace "<nome>"
+```
+
+> Você roda a CLI por pipe, sem TTY: os prompts interativos dela não funcionam
+> aí. **Quem pergunta é você**, com `AskUserQuestion`; a CLI só registra.
+> Use sempre as flags (`--list`, `--workspace`, `--front/--back/--db`).
 
 ## Fase 2 — Extrair (determinístico, não invente)
 

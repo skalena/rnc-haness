@@ -157,6 +157,12 @@ async function chooseDefaultWorkspace(workspaces: { id: string; name: string; st
     p.outro(`padrão: ${only.name}  ·  mudar: ${pc.cyan('rnc config set workspace')}`);
     return;
   }
+  // Without a TTY the prompt cannot run; leave the choice to whoever is driving.
+  if (!process.stdin.isTTY) {
+    p.outro(`${workspaces.length} workspaces · escolha com: ${pc.cyan('rnc config set workspace <nome|id>')}`);
+    return;
+  }
+
   const choice = await p.select({
     message: 'Workspace padrão',
     options: workspaces.map((w) => ({
