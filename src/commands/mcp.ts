@@ -36,11 +36,35 @@ export async function mcpCmd(argv: string[]): Promise<void> {
 async function login(base: string, flags: Record<string, string | boolean>): Promise<void> {
   p.intro(pc.bgCyan(pc.black(' Login RNC ')));
 
-  // Explicit token path: --token (or RNC_TOKEN). Also the automatic fallback
-  // when the deployment does not expose device pairing.
+  // Explicit token paths, in order of how safe they are:
+  //   --stdin   piped in, never on a command line or in shell history
+  //   --token   convenient, but lands in history
+  //   RNC_TOKEN inherited from the environment
+  if (flags.stdin) {
+    const piped = await readStdin();
+    if (!piped) {
+      p.cancel('nada recebido no stdin — use: pbpaste | rnc mcp login --stdin');
+      process.exit(1);
+    }
+    return loginWithToken(base, piped);
+  }
   const flagToken = typeof flags.token === 'string' ? flags.token : undefined;
   if (flagToken || process.env.RNC_TOKEN) {
     return loginWithToken(base, flagToken ?? process.env.RNC_TOKEN!);
+  }
+
+  // A masked prompt needs a terminal. Being driven over a pipe (an agent, CI)
+  // means we cannot ask safely — say how to do it instead of failing obscurely,
+  // and never invite the token into somewhere it would be recorded.
+  if (!process.stdin.isTTY) {
+    p.cancel(
+      'login interativo precisa de um terminal.\n' +
+        '  Rode no SEU terminal (a digitação fica oculta):\n' +
+        '    npx -y @skalena/rnc mcp login\n' +
+        '  Ou, com o token na área de transferência:\n' +
+        '    pbpaste | npx -y @skalena/rnc mcp login --stdin',
+    );
+    process.exit(1);
   }
 
   let pairing;
@@ -178,6 +202,13 @@ async function chooseDefaultWorkspace(workspaces: { id: string; name: string; st
   const ws = workspaces.find((w) => w.id === choice)!;
   setDefaultWorkspace(ws.id);
   p.outro(`padrão: ${ws.name}  ·  mudar: ${pc.cyan('rnc config set workspace')}`);
+}
+
+/** Read a piped token. Keeps it off the command line and out of shell history. */
+async function readStdin(): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const c of process.stdin) chunks.push(Buffer.from(c));
+  return Buffer.concat(chunks).toString('utf8').trim();
 }
 
 /** Read `exp` from a JWT without verifying it — display only, token stays opaque. */

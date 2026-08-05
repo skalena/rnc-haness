@@ -8,7 +8,7 @@ import { loadCredential, isExpired } from '../core/credentials.js';
 import { pickWorkspace } from '../core/pick.js';
 import { log } from '../core/log.js';
 
-const HARNESS_VERSION = '0.9.2';
+const HARNESS_VERSION = '0.10.0';
 
 /**
  * Scaffold a project for the SDD workflow: functional docs skeleton (stack-
