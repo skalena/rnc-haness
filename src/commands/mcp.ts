@@ -2,7 +2,7 @@ import { hostname } from 'node:os';
 import * as p from '@clack/prompts';
 import pc from 'picocolors';
 import { parseFlags } from '../core/args.js';
-import { baseUrl, setDefaultWorkspace, readConfig } from '../core/config.js';
+import { baseUrl, setDefaultWorkspace, readConfig, writeConfig } from '../core/config.js';
 import { saveCredential, loadCredential, removeCredential, isExpired, redact } from '../core/credentials.js';
 import { startPairing, awaitApproval, whoami, PairingError, PairingUnavailable, AuthError } from '../core/rnc.js';
 import { log } from '../core/log.js';
@@ -197,6 +197,15 @@ function logout(base: string): void {
   log.head('rnc mcp logout');
   if (removed) log.ok(`credencial local removida (${base})`);
   else log.info(`nenhuma credencial local para ${base}`);
+
+  // the selected workspace belonged to the identity that just left
+  const cfg = readConfig();
+  if (cfg.defaultWorkspace) {
+    delete cfg.defaultWorkspace;
+    writeConfig(cfg);
+    log.ok('workspace padrão limpo');
+  }
+
   log.warn('o token continua VÁLIDO no servidor — isto só esquece localmente');
   log.plain(`  revogar de verdade: web app → ${pc.bold('Settings → MCP Access → Connected clients')}`);
 }

@@ -1,6 +1,6 @@
 {
   "name": "rnc",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "Modernize a legacy system analyzed in RNC into an application whose every business rule traces back to the rule it came from",
   "author": {
     "name": "Skalena",
@@ -19,6 +19,7 @@
   "commands": [
     "./commands/rnc-modernize.md",
     "./commands/rnc-login.md",
+    "./commands/rnc-logout.md",
     "./commands/rnc-status.md"
   ]
 }
