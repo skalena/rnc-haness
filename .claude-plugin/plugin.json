@@ -1,6 +1,6 @@
 {
   "name": "rnc",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "Modernize a legacy system analyzed in RNC into an application whose every business rule traces back to the rule it came from",
   "author": {
     "name": "Skalena",

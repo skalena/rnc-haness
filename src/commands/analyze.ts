@@ -8,22 +8,37 @@ import { baseUrl, readConfig } from '../core/config.js';
 import { loadCredential, isExpired, removeCredential } from '../core/credentials.js';
 import { whoami, resolveWorkspace, AuthError } from '../core/rnc.js';
 import { pickWorkspace } from '../core/pick.js';
-import { getWorkspace, listModules, getModule, type ModuleSummary, type ModuleDetail } from '../core/rncApi.js';
+import {
+  withMcp,
+  getWorkspaceOverview,
+  listModules,
+  getModule,
+  getTechDebt,
+  type ModuleSummary,
+  type ModuleDetail,
+  type WorkspaceOverview,
+} from '../core/rncMcp.js';
+import type { McpClient } from '../core/mcpClient.js';
 import { log } from '../core/log.js';
 
-/** Parallel module fetches. Full extraction by default — losing a business
+/** In-flight module reads. Full extraction by default — losing a business
  *  rule is the exact failure this harness exists to prevent, so sampling is
- *  opt-in (--sample N), never the default. */
-const CONCURRENCY = 6;
+ *  opt-in (--sample N), never the default.
+ *
+ *  Lower than the REST client used: these are JSON-RPC requests multiplexed over
+ *  one SSE stream, so the win from more in flight is small and the cost of a
+ *  hub module's payload is not. */
+const CONCURRENCY = 4;
 
 /**
  * Pull the legacy analysis from RNC and normalize it into the IR.
  *
- * Live against the prod REST deployment: validates the workspace via whoami,
- * then reads workspace stats + all module summaries + the richest modules'
- * business rules / data models / quality findings. Unresolved rules
- * (ambiguous / needs-review / incomplete) become the `clarify` gate — sourced
- * from real RNC data, not guessed.
+ * Reads over MCP, not REST: the CLI token is `mcp`-scoped and `/api/v1/**`
+ * answers 403 to it by design. Validates the workspace via whoami (which the
+ * scope does allow), then reads the workspace overview + all module summaries +
+ * the compiled UIR of every module carrying rules. Unresolved rules (ambiguous /
+ * needs-review / incomplete) become the `clarify` gate — sourced from real RNC
+ * data, not guessed.
  */
 export async function analyzeCmd(argv: string[]): Promise<void> {
   const { flags } = parseFlags(argv);
@@ -96,10 +111,14 @@ export async function analyzeCmd(argv: string[]): Promise<void> {
   if (ir.unknowns.length) log.warn(`${ir.unknowns.length} pontos a confirmar → rode: ${pc.cyan('rnc clarify')}`);
 }
 
-async function extract(base: string, token: string, wsId: string, sample?: number): Promise<Analysis> {
-  const ws = await getWorkspace(base, token, wsId);
-  log.step(`Lendo ${ws.stats?.totalModules ?? '?'} módulos…`);
-  const modules = await listModules(base, token, wsId);
+function extract(base: string, token: string, wsId: string, sample?: number): Promise<Analysis> {
+  return withMcp(base, token, (mcp) => extractOverMcp(mcp, wsId, sample));
+}
+
+async function extractOverMcp(mcp: McpClient, wsId: string, sample?: number): Promise<Analysis> {
+  const ws = await getWorkspaceOverview(mcp, wsId);
+  log.step(`Lendo ${ws.totalModules ?? '?'} módulos…`);
+  const modules = await listModules(mcp, wsId);
 
   // Every module carrying rules is fetched. Sampling drops business rules —
   // the one thing this pipeline must not do — so it is opt-in and reported.
@@ -111,7 +130,7 @@ async function extract(base: string, token: string, wsId: string, sample?: numbe
   let fetched = 0;
   for (let i = 0; i < targets.length; i += CONCURRENCY) {
     const batch = targets.slice(i, i + CONCURRENCY);
-    const got = await Promise.all(batch.map((m) => getModule(base, token, wsId, m.id)));
+    const got = await Promise.all(batch.map((m) => getModule(mcp, wsId, m.id)));
     details.push(...got);
     fetched += got.length;
     process.stdout.write(`\r  ${pc.dim(`  ${fetched}/${targets.length} módulos`)}`);
@@ -119,31 +138,45 @@ async function extract(base: string, token: string, wsId: string, sample?: numbe
   if (targets.length) process.stdout.write('\r' + ' '.repeat(40) + '\r');
 
   const lang = dominantLang(ws) ?? modules[0]?.language?.toLowerCase() ?? 'unknown';
-  const debt = { critical: 0, high: 0, medium: 0, low: 0 };
+  // Server-side count when available; per-module quality findings otherwise (Java driver only, so
+  // the fallback reports zero for every other language — see getTechDebt).
+  const serverDebt = await getTechDebt(mcp, wsId);
+  const debt = serverDebt ?? { critical: 0, high: 0, medium: 0, low: 0 };
   const rules: Analysis['rules'] = [];
   const unknowns: Unknown[] = [];
   const entityNames = new Set<string>();
   const entities: Analysis['entities'] = [];
 
+  // RNC numbers rules per module, so BR-001 exists in every one of them. Left
+  // bare, an invariant citing "BR-001" would name fifteen different rules and
+  // the provenance chain — the reason this pipeline exists — would be a guess.
+  // Qualify with the module; disambiguate the rare same-named modules by id.
+  const nameCount = new Map<string, number>();
+  for (const d of details) nameCount.set(d.name, (nameCount.get(d.name) ?? 0) + 1);
+  const qualify = (r: { id: string }, d: ModuleDetail): string =>
+    (nameCount.get(d.name) ?? 0) > 1 ? `${r.id}@${d.name}#${d.id.slice(0, 6)}` : `${r.id}@${d.name}`;
+
   for (const d of details) {
     for (const r of d.businessRules) {
       const confidence = r.isUnambiguous && r.completeness === 'COMPLETE' && !r.requiresHumanReview ? 'high' : r.isUnambiguous === false || r.requiresHumanReview ? 'low' : 'medium';
-      rules.push({ id: r.id, unit: d.name, semantics: r.description ?? r.condition ?? r.semanticKind ?? r.id, confidence });
+      rules.push({ id: qualify(r, d), unit: d.name, semantics: r.description ?? r.condition ?? r.semanticKind ?? r.id, confidence });
       if (r.requiresHumanReview || r.isUnambiguous === false || (r.completeness && r.completeness !== 'COMPLETE')) {
         unknowns.push({
-          ref: r.id,
+          ref: qualify(r, d),
           reason: 'AMBIGUOUS_RULE',
           question: r.description ?? r.condition ?? r.id,
           impact: r.severity === 'ERROR' ? 'high' : r.severity === 'WARN' ? 'medium' : 'low',
         });
       }
     }
-    for (const f of d.qualityFindings) {
-      const s = (f.severity ?? '').toUpperCase();
-      if (s === 'CRITICAL') debt.critical++;
-      else if (s === 'HIGH' || s === 'ERROR') debt.high++;
-      else if (s === 'MEDIUM' || s === 'WARN') debt.medium++;
-      else debt.low++;
+    if (!serverDebt) {
+      for (const f of d.qualityFindings) {
+        const s = (f.severity ?? '').toUpperCase();
+        if (s === 'CRITICAL') debt.critical++;
+        else if (s === 'HIGH' || s === 'ERROR') debt.high++;
+        else if (s === 'MEDIUM' || s === 'WARN') debt.medium++;
+        else debt.low++;
+      }
     }
     for (const dm of d.dataModels) {
       const name = dm.name ?? dm.physicalName;
@@ -177,6 +210,17 @@ async function extract(base: string, token: string, wsId: string, sample?: numbe
     unknowns.push({ ref: 'SOURCE', reason: 'DISCARDED', question: 'Fonte descartada no RNC — dúvidas de semântica não podem ser desempatadas', impact: 'high' });
   }
 
+  // Same file ingested twice is a workspace-data problem, not ours — but it
+  // double-counts rules and skews the build order, so say it out loud.
+  const repeated = [...nameCount].filter(([, n]) => n > 1);
+  if (repeated.length) {
+    log.warn(
+      `módulos com nome repetido no workspace (regras contadas mais de uma vez): ${repeated
+        .map(([n, c]) => `${n} ×${c}`)
+        .join(', ')}`,
+    );
+  }
+
   const skipped = withRules.length - details.length;
   if (skipped > 0) {
     log.warn(`AMOSTRADO: ${details.length}/${withRules.length} módulos com regras — ${skipped} módulo(s) NÃO extraído(s), regras perdidas`);
@@ -203,8 +247,8 @@ function bucket(m: ModuleSummary): 'HIGH' | 'MEDIUM' | 'LOW' {
   return score >= 20 ? 'HIGH' : score >= 8 ? 'MEDIUM' : 'LOW';
 }
 
-function dominantLang(ws: { stats?: { languageBreakdown?: Record<string, number> } | null }): string | null {
-  const lb = ws.stats?.languageBreakdown;
+function dominantLang(ws: WorkspaceOverview): string | null {
+  const lb = ws.languageBreakdown;
   if (!lb) return null;
   const top = Object.entries(lb).sort((a, b) => b[1] - a[1])[0];
   return top ? top[0].toLowerCase() : null;
