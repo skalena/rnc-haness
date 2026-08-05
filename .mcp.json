@@ -1,9 +1,12 @@
 {
   "mcpServers": {
     "rnc": {
-      "command": "npx",
-      "args": ["-y", "@skalena/rnc", "mcp", "proxy"],
-      "note": "RNC MCP server — read-only, tenant-scoped tools for zooming into a legacy module (getModuleRules, getModuleDataModel, getUirModule). Authentication comes from the credential store written by `rnc mcp login`, so no token lives in this file or in your environment. Override the host with RNC_BASE_URL."
+      "type": "sse",
+      "url": "${user_config.base_url}/sse",
+      "headers": {
+        "Authorization": "Bearer ${user_config.token}"
+      },
+      "note": "RNC MCP server — read-only, tenant-scoped tools for zooming into a legacy module (getModuleRules, getModuleDataModel, getUirModule, getSourceFile). The token comes from the plugin's own configuration, so it lives in secure storage rather than in this file, in settings.json or in the conversation. Reconfigure with /plugin."
     }
   }
 }

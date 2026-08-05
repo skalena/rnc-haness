@@ -2,54 +2,94 @@
 /**
  * SessionStart hook for the RNC plugin.
  *
- * Answers, before the user asks, the three things that otherwise cost a
- * round trip each: is the engine reachable, are we authenticated, and is this
- * directory already a modernization project. Silent when there is nothing
- * useful to say — a hook that always speaks becomes noise the agent ignores.
+ * Two jobs:
+ *
+ * 1. Make the plugin's configuration the single source of truth. The MCP server
+ *    reads the token straight from plugin config, but the `rnc` CLI reads its
+ *    own credential store — without this, the user would configure the same
+ *    token twice. The token arrives here as CLAUDE_PLUGIN_OPTION_TOKEN (env,
+ *    because shell-form hook commands reject ${user_config.*} substitution).
+ *
+ * 2. Tell the agent, up front, what would otherwise cost a round trip each:
+ *    whether the engine is reachable, whether we are authenticated, and whether
+ *    this directory is already a modernization project. Silent when there is
+ *    nothing useful to say — a hook that always speaks becomes noise.
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 const lines = [];
 
-/** Resolve how to invoke the CLI: global install, else npx. */
-function cliInvocation() {
+const BASE = process.env.CLAUDE_PLUGIN_OPTION_BASE_URL || process.env.RNC_BASE_URL || 'https://api.rnc.skalena.co';
+const HOME = process.env.RNC_CONFIG_HOME ?? join(homedir(), '.rnc');
+const CRED = join(HOME, 'credentials.json');
+
+/** Claims we can read without verifying — the token stays opaque to us. */
+function claims(token) {
   try {
-    execFileSync('rnc', ['--version'], { stdio: 'ignore', timeout: 5000 });
-    return 'rnc';
+    const part = token.split('.')[1];
+    if (!part) return {};
+    return JSON.parse(Buffer.from(part, 'base64url').toString('utf8'));
   } catch {
-    return 'npx -y @skalena/rnc';
+    return {};
   }
 }
 
-function authenticated() {
-  const home = process.env.RNC_CONFIG_HOME ?? join(homedir(), '.rnc');
-  const path = join(home, 'credentials.json');
-  if (!existsSync(path)) return null;
+function readStore() {
+  if (!existsSync(CRED)) return {};
   try {
-    const store = JSON.parse(readFileSync(path, 'utf8'));
-    const base = process.env.RNC_BASE_URL ?? 'https://api.rnc.skalena.co';
-    const cred = store[base];
-    if (!cred) return null;
-    if (new Date(cred.expiresAt).getTime() <= Date.now()) return { expired: true, subject: cred.subject };
-    return { expired: false, subject: cred.subject };
+    return JSON.parse(readFileSync(CRED, 'utf8'));
   } catch {
-    return null;
+    return {};
   }
 }
 
-const cli = cliInvocation();
-if (cli !== 'rnc') {
-  lines.push(`O CLI \`rnc\` não está no PATH — use \`${cli}\` no lugar de \`rnc\` (não peça ao usuário para instalar nada).`);
+/** Mirror the plugin's configured token into the CLI's credential store. */
+function syncToken() {
+  const token = process.env.CLAUDE_PLUGIN_OPTION_TOKEN;
+  if (!token) return;
+  const store = readStore();
+  if (store[BASE]?.accessToken === token) return; // already in sync
+
+  const c = claims(token);
+  store[BASE] = {
+    baseUrl: BASE,
+    accessToken: token,
+    expiresAt: c.exp ? new Date(c.exp * 1000).toISOString() : new Date(Date.now() + 90 * 864e5).toISOString(),
+    subject: c.sub ?? 'plugin-config',
+    clientName: 'RNC plugin (Claude Code)',
+  };
+  try {
+    mkdirSync(HOME, { recursive: true, mode: 0o700 });
+    writeFileSync(CRED, JSON.stringify(store, null, 2) + '\n', { mode: 0o600 });
+    lines.push('RNC: token do plugin sincronizado com o CLI — `rnc` e as tools MCP usam a mesma credencial.');
+  } catch (e) {
+    lines.push(`RNC: não consegui gravar a credencial do CLI (${e.message}); as tools MCP funcionam, os comandos \`rnc\` não.`);
+  }
 }
 
-const auth = authenticated();
+function credential() {
+  const cred = readStore()[BASE];
+  if (!cred) return null;
+  return { expired: new Date(cred.expiresAt).getTime() <= Date.now(), subject: cred.subject };
+}
+
+syncToken();
+
+// how to invoke the engine
+try {
+  execFileSync('rnc', ['--version'], { stdio: 'ignore', timeout: 5000 });
+} catch {
+  lines.push('O CLI `rnc` não está no PATH — use `npx -y @skalena/rnc` no lugar de `rnc` (não peça ao usuário para instalar nada).');
+}
+
+const auth = credential();
 if (!auth) {
-  lines.push('RNC: sem credencial local. Se o usuário pedir algo do RNC, rode `/rnc-login` antes.');
+  lines.push('RNC: sem credencial. Configure o token do plugin com `/plugin` (entrada mascarada, vai para o Keychain) ou rode `/rnc-login`.');
 } else if (auth.expired) {
-  lines.push(`RNC: credencial de ${auth.subject} expirada — rode \`/rnc-login\`.`);
+  lines.push(`RNC: credencial de ${auth.subject} expirada — reconfigure o token em \`/plugin\`.`);
 } else {
   lines.push(`RNC: autenticado como ${auth.subject}.`);
 }

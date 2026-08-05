@@ -17,7 +17,7 @@ import { apiCmd } from './commands/api.js';
 import { workspacesCmd } from './commands/workspaces.js';
 import { installCmd } from './commands/install.js';
 
-const VERSION = '0.10.0';
+const VERSION = '0.11.0';
 
 /** Skalena plug-bot — cyan eyes + base, bold outline. */
 const BANNER = [

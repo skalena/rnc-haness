@@ -12,32 +12,30 @@ rnc mcp status 2>/dev/null || npx -y @skalena/rnc mcp status
 
 Valid credential → skip to step 2. Expired or missing → step 1b.
 
-## 1b. Get a token in place
+## 1b. Get a token in place — inside Claude Code
 
-You are running the CLI over a pipe, so its masked prompt cannot run here.
+Tell the user to run **`/plugin`**, open the `rnc` plugin and set **RNC token**.
+The dialog masks the input and stores the value in the OS keychain — it never
+touches `settings.json`, the conversation or the logs. Tokens are generated in
+the RNC web app under **Settings → MCP Access**.
+
+The session hook mirrors that token into the CLI's credential store on the next
+start, so `rnc` commands and the MCP tools both work from that one setting.
 
 **Never ask the user to paste a token into the chat.** It would become part of
-the conversation, the context and the logs — a token pasted into chat should be
-treated as compromised and rotated. Ask them to run one command in their own
-terminal instead, where the input is masked:
+the conversation, the context and the logs; a token pasted there must be treated
+as compromised and rotated. If they insist, say that plainly first.
+
+If they would rather use the terminal, both of these work and keep the token
+masked or out of shell history:
 
 ```bash
 npx -y @skalena/rnc mcp login
-```
-
-If they already have the token on the clipboard, this keeps it out of shell
-history too:
-
-```bash
 pbpaste | npx -y @skalena/rnc mcp login --stdin
 ```
 
-Tokens are generated in the RNC web app under **Settings → MCP Access**.
-
-Wait for them to say it is done, then re-run `rnc mcp status` to confirm. If the
-user insists on pasting into the chat, tell them plainly that the token will be
-exposed and must be rotated afterwards — then proceed with
-`rnc mcp login --token <t>` if they still want to.
+Either way, Claude Code has to restart once for the MCP server to pick the token
+up. Confirm with `rnc mcp status` afterwards.
 
 ## 2. Choose the workspace — always ask
 
