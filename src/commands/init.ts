@@ -8,7 +8,7 @@ import { loadCredential, isExpired } from '../core/credentials.js';
 import { pickWorkspace } from '../core/pick.js';
 import { log } from '../core/log.js';
 
-const HARNESS_VERSION = '0.8.0';
+const HARNESS_VERSION = '0.9.0';
 
 /**
  * Scaffold a project for the SDD workflow: functional docs skeleton (stack-
@@ -56,21 +56,18 @@ export async function initCmd(argv: string[]): Promise<void> {
   );
   write(join(cwd, 'CLAUDE.md'), `@AGENTS.md\n`);
 
-  // MCP server pointer (Claude Code reads .mcp.json). SSE transport — the only
-  // one Spring AI 1.0.0 ships (RNC-MCP-INTEGRATION.md §7). Token comes from
-  // `rnc mcp login`; the same credential drives `claude mcp add rnc`.
-  // The base URL is written literally (it is not a secret and every agent
-  // resolves it the same way); only the token stays an env var, so the file is
-  // safe to commit. Populate it with: export RNC_TOKEN=$(rnc mcp token)
+  // MCP server pointer (Claude Code reads .mcp.json). Goes through `rnc mcp
+  // proxy`, which reads the credential written by `rnc mcp login` and bridges
+  // to the RNC SSE endpoint — so no token lives in this file or in the
+  // environment, and the file is safe to commit.
   write(
     join(cwd, '.mcp.json'),
     JSON.stringify(
       {
         mcpServers: {
           rnc: {
-            type: 'sse',
-            url: `${baseUrl()}/sse`,
-            headers: { Authorization: 'Bearer ${RNC_TOKEN}' },
+            command: 'npx',
+            args: ['-y', '@skalena/rnc', 'mcp', 'proxy'],
           },
         },
       },
@@ -80,26 +77,17 @@ export async function initCmd(argv: string[]): Promise<void> {
   );
 
   write(join(cwd, '.rnc', 'harness.lock'), `harness: ${HARNESS_VERSION}\nworkspace: ${workspace}\n`);
-  write(
-    join(cwd, '.env.example'),
-    [
-      `RNC_BASE_URL=${baseUrl()}`,
-      '# preencha com: rnc mcp token',
-      'RNC_TOKEN=',
-      `RNC_WORKSPACE=${workspace}`,
-      '',
-    ].join('\n'),
-  );
+  // No RNC_TOKEN here on purpose: the MCP server authenticates through
+  // `rnc mcp proxy` off the credential store, so the token never needs to
+  // reach the environment.
+  write(join(cwd, '.env.example'), [`RNC_BASE_URL=${baseUrl()}`, `RNC_WORKSPACE=${workspace}`, ''].join('\n'));
 
   log.plain('');
   log.ok('docs/functional/  (5 arquivos, stack-neutros)');
   log.ok('docs/api/  docs/technical/');
   log.ok('AGENTS.md + CLAUDE.md (import)');
-  log.ok(`.mcp.json  → rnc @ ${baseUrl()}/sse`);
+  log.ok(`.mcp.json  → rnc via \`rnc mcp proxy\` (sem token no arquivo)`);
   log.ok('.rnc/harness.lock · .env.example');
-  log.plain('');
-  log.plain('  conectar o Claude Code a este projeto:');
-  log.plain(`    ${pc.cyan('export RNC_TOKEN=$(rnc mcp token)')}`);
   log.plain('');
   log.plain('  próximos passos:');
   log.plain(`    ${pc.cyan('rnc analyze')}`);

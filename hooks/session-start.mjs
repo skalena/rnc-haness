@@ -52,9 +52,6 @@ if (!auth) {
   lines.push(`RNC: credencial de ${auth.subject} expirada — rode \`/rnc-login\`.`);
 } else {
   lines.push(`RNC: autenticado como ${auth.subject}.`);
-  if (!process.env.RNC_TOKEN) {
-    lines.push('RNC_TOKEN não está no ambiente, então as tools MCP do RNC não vão conectar nesta sessão. O CLI funciona normalmente; para o zoom por módulo, veja `/rnc-login`.');
-  }
 }
 
 // project state — only worth mentioning inside an existing harness project

@@ -1,12 +1,9 @@
 {
   "mcpServers": {
     "rnc": {
-      "type": "sse",
-      "url": "https://api.rnc.skalena.co/sse",
-      "headers": {
-        "Authorization": "Bearer ${RNC_TOKEN}"
-      },
-      "note": "RNC MCP server — read-only, tenant-scoped tools for zooming into a legacy module (getModuleRules, getModuleDataModel, getUirModule). Needs RNC_TOKEN in the environment: run /rnc-login once, then `export RNC_TOKEN=$(npx -y @skalena/rnc mcp token)` in your shell profile. Override the host with RNC_BASE_URL."
+      "command": "npx",
+      "args": ["-y", "@skalena/rnc", "mcp", "proxy"],
+      "note": "RNC MCP server — read-only, tenant-scoped tools for zooming into a legacy module (getModuleRules, getModuleDataModel, getUirModule). Authentication comes from the credential store written by `rnc mcp login`, so no token lives in this file or in your environment. Override the host with RNC_BASE_URL."
     }
   }
 }

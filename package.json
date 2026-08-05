@@ -1,6 +1,6 @@
 {
   "name": "@skalena/rnc",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "RNC Harness CLI — spec-driven modernization of legacy systems into testable, containerized architectures. Legacy analysis comes from RNC via MCP; the workflow is fixed, the target stack is composable.",
   "type": "module",
   "bin": {

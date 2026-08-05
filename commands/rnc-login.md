@@ -4,32 +4,37 @@ description: Authenticate the RNC harness against the RNC platform
 
 Authenticate against RNC.
 
-Run the interactive login — it uses device pairing when the deployment offers
-it, and otherwise prompts for a token generated in the web app, with masked
-input so the token never reaches the screen or shell history:
+First check whether it is even needed:
 
 ```bash
-rnc mcp login 2>/dev/null || npx -y @skalena/rnc mcp login
+rnc mcp status 2>/dev/null || npx -y @skalena/rnc mcp status
 ```
 
-Never ask the user to paste their token into the chat, and never echo a token
-back — the CLI reads it directly and stores it at `~/.rnc/credentials.json`
-(mode 0600).
+If it reports a valid credential, say so and stop — do not re-authenticate.
 
-Once it succeeds, confirm what the token can see:
+Otherwise run the interactive login. It uses device pairing when the deployment
+offers it, and otherwise prompts for a token generated in the web app, with
+masked input so the token never reaches the screen or the shell history:
+
+```bash
+rnc mcp login
+```
+
+Never ask the user to paste a token into the chat, and never echo one back.
+
+Once it succeeds, report who they are and which workspaces the token reaches:
 
 ```bash
 rnc mcp whoami
 ```
 
-Then tell the user this, so the MCP tools work in future sessions — the
-`rnc` MCP server reads `RNC_TOKEN` from the environment, which Claude Code
-resolves at startup:
+## About the MCP tools
 
-```bash
-echo 'export RNC_TOKEN=$(npx -y @skalena/rnc mcp token 2>/dev/null)' >> ~/.zshrc
-```
+The credential store is all the MCP server needs — it authenticates through
+`rnc mcp proxy`, so there is no token to export and nothing to add to a shell
+profile. Do not instruct the user to edit `~/.zshrc`.
 
-Explain that they need to restart Claude Code once for the MCP server to pick
-the token up. The `rnc` CLI itself works immediately — only the MCP tools
-(module-level zoom) need the environment variable.
+If the `rnc` MCP tools are not connected in this session, tell them plainly:
+the server picks up the new credential when Claude Code next starts. The CLI
+itself works immediately, so the modernization can begin right now — only
+module-level zoom waits for the restart.

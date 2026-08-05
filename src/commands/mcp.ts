@@ -25,8 +25,10 @@ export async function mcpCmd(argv: string[]): Promise<void> {
       return status(base);
     case 'token':
       return printToken(base);
+    case 'proxy':
+      return (await import('./proxy.js')).proxyCmd();
     default:
-      log.err(`subcomando desconhecido: mcp ${sub}  (login|logout|whoami|status|token)`);
+      log.err(`subcomando desconhecido: mcp ${sub}  (login|logout|whoami|status|token|proxy)`);
       process.exit(1);
   }
 }
